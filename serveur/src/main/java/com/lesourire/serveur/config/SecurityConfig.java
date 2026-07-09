@@ -27,6 +27,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(autorisations -> autorisations
                         .requestMatchers("/api/systeme/**").permitAll()
+                        .requestMatchers("/api/patients/**", "/api/assureurs/**", "/api/societes/**")
+                        .hasAnyRole("DENTISTE", "ASSISTANT", "SECRETAIRE", "ADMINISTRATEUR")
                         .anyRequest().authenticated())
                 .httpBasic(withDefaults());
         return http.build();

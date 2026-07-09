@@ -82,7 +82,7 @@ appliqué automatiquement chez le client à la mise à jour du serveur.
 | Phase | Contenu                                                            | État |
 |-------|--------------------------------------------------------------------|------|
 | 1     | Squelette : BD complète, serveur, client, connexion, navigation    | ✔    |
-| 2     | Module Patients                                                     |      |
+| 2     | Module Patients (fiche, recherche, tiers payants, audit)           | ✔    |
 | 3     | Agenda / RDV + rappels mail & WhatsApp (J-2, revisites)             |      |
 | 4     | Facturation (actes D/Z, remises, quotes-parts, paiements)           |      |
 | 5     | Stock (articles, fournisseurs, alertes)                             |      |

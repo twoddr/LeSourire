@@ -142,6 +142,7 @@ public class PrincipaleVue {
     private Node creerVue(Module module) {
         return switch (module) {
             case TABLEAU_BORD -> TableauBordVue.creer();
+            case PATIENTS -> new PatientsVue().getRacine();
             default -> VueModuleEnConstruction.creer(module);
         };
     }

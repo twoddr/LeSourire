@@ -20,6 +20,8 @@
 
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
+        <!-- Conserve les noms de paramètres à la compilation (requis par Spring MVC) -->
+        <maven.compiler.parameters>true</maven.compiler.parameters>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 

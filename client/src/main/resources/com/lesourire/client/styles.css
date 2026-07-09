@@ -226,6 +226,22 @@
     -fx-text-fill: #6b7280;
 }
 
+/* Module Patients */
+
+.champ-recherche {
+    -fx-font-size: 14px;
+    -fx-padding: 10 14 10 14;
+    -fx-background-radius: 8;
+}
+
+.ligne-mauvais-payeur {
+    -fx-background-color: #fef3c7;    /* ambre pâle : payeur à surveiller */
+}
+
+.ligne-mauvais-payeur:selected {
+    -fx-background-color: -ls-accent;
+}
+
 /* Modules en préparation */
 
 .placeholder-icone {

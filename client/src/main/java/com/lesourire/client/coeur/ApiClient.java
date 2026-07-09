@@ -3,6 +3,7 @@ package com.lesourire.client.coeur;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -10,7 +11,11 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.lesourire.commun.dto.UtilisateurDTO;
 
 /**
@@ -23,7 +28,10 @@ public class ApiClient {
     private final HttpClient http = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
             .build();
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
     private String urlBase = "http://localhost:8420";
     private String enteteAuthorization;
@@ -38,6 +46,11 @@ public class ApiClient {
         return urlBase;
     }
 
+    /** Encode une valeur destinée à un paramètre d'URL. */
+    public static String encoder(String valeur) {
+        return URLEncoder.encode(valeur == null ? "" : valeur, StandardCharsets.UTF_8);
+    }
+
     /**
      * Tente une connexion avec les identifiants fournis.
      *
@@ -49,36 +62,84 @@ public class ApiClient {
                 (nomUtilisateur + ":" + motDePasse).getBytes(StandardCharsets.UTF_8));
         String entete = "Basic " + jeton;
 
-        HttpResponse<String> reponse = executer(get("/api/auth/moi", entete));
+        HttpResponse<String> reponse = executer(requete("GET", "/api/auth/moi", null, entete));
         if (reponse.statusCode() == 401 || reponse.statusCode() == 403) {
             throw new ApiException("Nom d'utilisateur ou mot de passe incorrect.");
         }
-        if (reponse.statusCode() != 200) {
-            throw new ApiException("Réponse inattendue du serveur (code " + reponse.statusCode() + ").");
-        }
+        verifier(reponse);
 
         this.enteteAuthorization = entete;
-        return lire(reponse.body(), UtilisateurDTO.class);
+        return lire(reponse.body(), new TypeReference<UtilisateurDTO>() {
+        });
     }
 
-    /** Requête GET authentifiée, désérialisée vers le type demandé. */
-    public <T> T get(String chemin, Class<T> type) throws ApiException {
-        HttpResponse<String> reponse = executer(get(chemin, enteteAuthorization));
-        if (reponse.statusCode() != 200) {
-            throw new ApiException("Erreur serveur (code " + reponse.statusCode() + ").");
-        }
+    /** GET authentifié. */
+    public <T> T get(String chemin, TypeReference<T> type) throws ApiException {
+        HttpResponse<String> reponse = executer(requete("GET", chemin, null, enteteAuthorization));
+        verifier(reponse);
         return lire(reponse.body(), type);
     }
 
-    private HttpRequest get(String chemin, String entete) {
+    /** POST authentifié avec corps JSON. */
+    public <T> T post(String chemin, Object corps, TypeReference<T> type) throws ApiException {
+        HttpResponse<String> reponse = executer(requete("POST", chemin, corps, enteteAuthorization));
+        verifier(reponse);
+        return lire(reponse.body(), type);
+    }
+
+    /** PUT authentifié avec corps JSON. */
+    public <T> T put(String chemin, Object corps, TypeReference<T> type) throws ApiException {
+        HttpResponse<String> reponse = executer(requete("PUT", chemin, corps, enteteAuthorization));
+        verifier(reponse);
+        return lire(reponse.body(), type);
+    }
+
+    private HttpRequest requete(String methode, String chemin, Object corps, String entete)
+            throws ApiException {
         HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create(urlBase + chemin))
-                .timeout(Duration.ofSeconds(10))
-                .GET();
+                .timeout(Duration.ofSeconds(15));
         if (entete != null) {
             builder.header("Authorization", entete);
         }
+        if (corps == null) {
+            builder.method(methode, HttpRequest.BodyPublishers.noBody());
+        } else {
+            builder.header("Content-Type", "application/json");
+            builder.method(methode, HttpRequest.BodyPublishers.ofString(ecrire(corps)));
+        }
         return builder.build();
+    }
+
+    private void verifier(HttpResponse<String> reponse) throws ApiException {
+        int code = reponse.statusCode();
+        if (code >= 200 && code < 300) {
+            return;
+        }
+        if (code == 400) {
+            throw new ApiException(extraireMessage(reponse.body(),
+                    "Données refusées par le serveur."));
+        }
+        if (code == 401 || code == 403) {
+            throw new ApiException("Accès refusé : votre rôle ne permet pas cette action.");
+        }
+        if (code == 404) {
+            throw new ApiException("Élément introuvable sur le serveur.");
+        }
+        throw new ApiException("Erreur serveur (code " + code + ").");
+    }
+
+    /** Extrait le champ "message" d'une réponse d'erreur Spring, si présent. */
+    private String extraireMessage(String corps, String parDefaut) {
+        try {
+            var noeud = mapper.readTree(corps);
+            if (noeud.hasNonNull("message") && !noeud.get("message").asText().isBlank()) {
+                return noeud.get("message").asText();
+            }
+        } catch (IOException e) {
+            // corps non JSON : on garde le message par défaut
+        }
+        return parDefaut;
     }
 
     private HttpResponse<String> executer(HttpRequest requete) throws ApiException {
@@ -95,11 +156,19 @@ public class ApiClient {
         }
     }
 
-    private <T> T lire(String json, Class<T> type) throws ApiException {
+    private <T> T lire(String json, TypeReference<T> type) throws ApiException {
         try {
             return mapper.readValue(json, type);
         } catch (IOException e) {
             throw new ApiException("Réponse du serveur illisible : " + e.getMessage());
+        }
+    }
+
+    private String ecrire(Object objet) throws ApiException {
+        try {
+            return mapper.writeValueAsString(objet);
+        } catch (IOException e) {
+            throw new ApiException("Impossible de préparer la requête : " + e.getMessage());
         }
     }
 
