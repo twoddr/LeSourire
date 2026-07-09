@@ -1,0 +1,112 @@
+package com.lesourire.client.coeur;
+
+import java.io.IOException;
+import java.net.ConnectException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Base64;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lesourire.commun.dto.UtilisateurDTO;
+
+/**
+ * Client HTTP vers le serveur Le Sourire.
+ * Authentification HTTP Basic : les identifiants sont conservés en mémoire
+ * pour la durée de la session et joints à chaque requête.
+ */
+public class ApiClient {
+
+    private final HttpClient http = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(5))
+            .build();
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    private String urlBase = "http://localhost:8420";
+    private String enteteAuthorization;
+
+    public void setUrlBase(String urlBase) {
+        this.urlBase = urlBase.endsWith("/")
+                ? urlBase.substring(0, urlBase.length() - 1)
+                : urlBase;
+    }
+
+    public String getUrlBase() {
+        return urlBase;
+    }
+
+    /**
+     * Tente une connexion avec les identifiants fournis.
+     *
+     * @return le profil de l'utilisateur si les identifiants sont valides
+     * @throws ApiException avec un message affichable à l'utilisateur
+     */
+    public UtilisateurDTO connexion(String nomUtilisateur, String motDePasse) throws ApiException {
+        String jeton = Base64.getEncoder().encodeToString(
+                (nomUtilisateur + ":" + motDePasse).getBytes(StandardCharsets.UTF_8));
+        String entete = "Basic " + jeton;
+
+        HttpResponse<String> reponse = executer(get("/api/auth/moi", entete));
+        if (reponse.statusCode() == 401 || reponse.statusCode() == 403) {
+            throw new ApiException("Nom d'utilisateur ou mot de passe incorrect.");
+        }
+        if (reponse.statusCode() != 200) {
+            throw new ApiException("Réponse inattendue du serveur (code " + reponse.statusCode() + ").");
+        }
+
+        this.enteteAuthorization = entete;
+        return lire(reponse.body(), UtilisateurDTO.class);
+    }
+
+    /** Requête GET authentifiée, désérialisée vers le type demandé. */
+    public <T> T get(String chemin, Class<T> type) throws ApiException {
+        HttpResponse<String> reponse = executer(get(chemin, enteteAuthorization));
+        if (reponse.statusCode() != 200) {
+            throw new ApiException("Erreur serveur (code " + reponse.statusCode() + ").");
+        }
+        return lire(reponse.body(), type);
+    }
+
+    private HttpRequest get(String chemin, String entete) {
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(urlBase + chemin))
+                .timeout(Duration.ofSeconds(10))
+                .GET();
+        if (entete != null) {
+            builder.header("Authorization", entete);
+        }
+        return builder.build();
+    }
+
+    private HttpResponse<String> executer(HttpRequest requete) throws ApiException {
+        try {
+            return http.send(requete, HttpResponse.BodyHandlers.ofString());
+        } catch (ConnectException e) {
+            throw new ApiException("Serveur injoignable à l'adresse " + urlBase
+                    + ".\nVérifiez que le serveur est démarré et que l'adresse est correcte.");
+        } catch (IOException e) {
+            throw new ApiException("Erreur de communication avec le serveur : " + e.getMessage());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ApiException("Connexion interrompue.");
+        }
+    }
+
+    private <T> T lire(String json, Class<T> type) throws ApiException {
+        try {
+            return mapper.readValue(json, type);
+        } catch (IOException e) {
+            throw new ApiException("Réponse du serveur illisible : " + e.getMessage());
+        }
+    }
+
+    /** Erreur affichable à l'utilisateur. */
+    public static class ApiException extends Exception {
+        public ApiException(String message) {
+            super(message);
+        }
+    }
+}

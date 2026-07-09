@@ -1,0 +1,249 @@
+/* ============================================================
+   LE SOURIRE - feuille de style du client
+   Base : thème AtlantaFX PrimerLight, accent turquoise "dentaire"
+   ============================================================ */
+
+.root {
+    -ls-accent: #0e7490;          /* turquoise principal */
+    -ls-accent-sombre: #155e75;
+    -ls-encre: #0f2e38;           /* bleu-vert très sombre (barre latérale) */
+    -ls-encre-claire: #16404e;
+    -fx-font-family: "Inter", "Segoe UI", "Noto Sans", sans-serif;
+}
+
+/* ---------------- Écran de connexion ---------------- */
+
+.fond-connexion {
+    -fx-background-color: linear-gradient(to bottom right, #0f2e38, #0e7490);
+}
+
+.carte-connexion {
+    -fx-background-color: white;
+    -fx-background-radius: 16;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 30, 0.2, 0, 8);
+}
+
+.badge-logo {
+    -fx-background-color: -ls-accent;
+    -fx-text-fill: white;
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 14;
+    -fx-padding: 12 16 12 16;
+}
+
+.titre-application {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -ls-encre;
+}
+
+.sous-titre-application {
+    -fx-font-size: 13px;
+    -fx-text-fill: #6b7280;
+}
+
+.carte-connexion .text-field,
+.carte-connexion .password-field {
+    -fx-font-size: 14px;
+    -fx-padding: 10 12 10 12;
+}
+
+.panneau-serveur {
+    -fx-box-border: transparent;
+}
+
+.panneau-serveur > .title {
+    -fx-font-size: 12px;
+    -fx-text-fill: #6b7280;
+}
+
+.bouton-principal {
+    -fx-background-color: -ls-accent;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-padding: 10 16 10 16;
+}
+
+.bouton-principal:hover {
+    -fx-background-color: -ls-accent-sombre;
+}
+
+.bouton-principal .ikonli-font-icon {
+    -fx-icon-color: white;
+}
+
+.label-erreur {
+    -fx-text-fill: #b91c1c;
+    -fx-font-size: 13px;
+}
+
+.lien-demo {
+    -fx-font-size: 12px;
+    -fx-text-fill: #6b7280;
+}
+
+/* ---------------- Barre latérale ---------------- */
+
+.sidebar {
+    -fx-background-color: -ls-encre;
+}
+
+.badge-logo-petit {
+    -fx-background-color: -ls-accent;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 10;
+    -fx-padding: 8 10 8 10;
+}
+
+.sidebar-titre {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.sidebar-sous-titre {
+    -fx-text-fill: #7fa8b3;
+    -fx-font-size: 11px;
+}
+
+.sidebar .separator .line {
+    -fx-border-color: #24505d;
+}
+
+.nav-bouton {
+    -fx-background-color: transparent;
+    -fx-text-fill: #cfe3e8;
+    -fx-font-size: 14px;
+    -fx-background-radius: 8;
+    -fx-padding: 10 14 10 14;
+    -fx-graphic-text-gap: 12;
+    -fx-cursor: hand;
+}
+
+.nav-bouton .nav-icone {
+    -fx-icon-color: #7fa8b3;
+    -fx-icon-size: 18;
+}
+
+.nav-bouton:hover {
+    -fx-background-color: -ls-encre-claire;
+    -fx-text-fill: white;
+}
+
+.nav-bouton:selected {
+    -fx-background-color: -ls-accent;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.nav-bouton:selected .nav-icone,
+.nav-bouton:hover .nav-icone {
+    -fx-icon-color: white;
+}
+
+.sidebar-utilisateur-nom {
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.sidebar-utilisateur-role {
+    -fx-text-fill: #7fa8b3;
+    -fx-font-size: 12px;
+}
+
+.bouton-deconnexion {
+    -fx-background-color: transparent;
+    -fx-border-color: #24505d;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-text-fill: #cfe3e8;
+    -fx-cursor: hand;
+}
+
+.bouton-deconnexion:hover {
+    -fx-background-color: #7f1d1d;
+    -fx-border-color: transparent;
+    -fx-text-fill: white;
+}
+
+.bouton-deconnexion .ikonli-font-icon {
+    -fx-icon-color: #cfe3e8;
+}
+
+.bouton-deconnexion:hover .ikonli-font-icon {
+    -fx-icon-color: white;
+}
+
+/* ---------------- Zone de contenu ---------------- */
+
+.zone-contenu {
+    -fx-background-color: #f3f6f7;
+}
+
+.titre-page {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -ls-encre;
+}
+
+.sous-titre-page {
+    -fx-font-size: 14px;
+    -fx-text-fill: #6b7280;
+}
+
+.note-discrete {
+    -fx-font-size: 12px;
+    -fx-text-fill: #9ca3af;
+}
+
+/* Cartes de statistiques du tableau de bord */
+
+.carte-stat {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-effect: dropshadow(gaussian, rgba(15, 46, 56, 0.10), 12, 0.1, 0, 3);
+}
+
+.carte-stat-icone {
+    -fx-icon-color: -ls-accent;
+    -fx-icon-size: 26;
+}
+
+.carte-stat-valeur {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -ls-encre;
+}
+
+.carte-stat-libelle {
+    -fx-font-size: 12px;
+    -fx-text-fill: #6b7280;
+}
+
+/* Modules en préparation */
+
+.placeholder-icone {
+    -fx-icon-color: #b6cdd4;
+    -fx-icon-size: 64;
+}
+
+.placeholder-description {
+    -fx-font-size: 14px;
+    -fx-text-fill: #6b7280;
+    -fx-text-alignment: center;
+}
+
+.etiquette-en-preparation {
+    -fx-background-color: #e0f2f7;
+    -fx-text-fill: -ls-accent-sombre;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 999;
+    -fx-padding: 6 14 6 14;
+}

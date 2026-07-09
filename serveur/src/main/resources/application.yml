@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: lesourire-serveur
+
+  datasource:
+    url: ${LESOURIRE_BD_URL:jdbc:mariadb://localhost:3306/lesourire}
+    username: ${LESOURIRE_BD_UTILISATEUR:lesourire}
+    password: ${LESOURIRE_BD_MOT_DE_PASSE:lesourire}
+
+  jpa:
+    hibernate:
+      # Le schéma est géré exclusivement par Flyway ; Hibernate vérifie seulement
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    locations: classpath:db/migration
+
+server:
+  port: ${LESOURIRE_PORT:8420}
+
+lesourire:
+  version: 0.1.0
+
+logging:
+  level:
+    com.lesourire: INFO

@@ -1,0 +1,18 @@
+# Base de données de développement (optionnel : voir aussi scripts/creer_bd_dev.sql
+# pour utiliser une MariaDB déjà installée sur le poste).
+services:
+  bd:
+    image: mariadb:11.4
+    container_name: lesourire-bd
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: lesourire
+      MARIADB_USER: lesourire
+      MARIADB_PASSWORD: lesourire
+    ports:
+      - "3306:3306"
+    volumes:
+      - donnees-bd:/var/lib/mysql
+
+volumes:
+  donnees-bd:

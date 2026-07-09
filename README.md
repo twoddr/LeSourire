@@ -1,0 +1,97 @@
+# Le Sourire — Gestion du cabinet dentaire
+
+Logiciel de gestion du Cabinet Dentaire **Le Sourire** (Dr Nadine Towe, Douala) :
+patients, rendez-vous et rappels automatiques, facturation en lettres-clés D/Z,
+stock, comptabilité et comptes utilisateurs par rôle.
+
+## Architecture
+
+```
+┌────────────────────┐   HTTP / REST (JSON)   ┌──────────────────────────────┐
+│  Client JavaFX     │ ─────────────────────► │  Serveur Spring Boot         │
+│  (postes cabinet,  │                        │  (PC principal du cabinet)   │
+│   Windows)         │ ◄───────────────────── │  · API REST + sécurité       │
+└────────────────────┘                        │  · Rappels J-2 / revisites   │
+                                              │  · Sauvegardes automatiques  │
+        ... x N postes                        │  · Migrations BD (Flyway)    │
+                                              └──────────────┬───────────────┘
+                                                             │ JDBC
+                                                     ┌───────▼───────┐
+                                                     │    MariaDB    │
+                                                     └───────────────┘
+```
+
+| Module    | Rôle                                                                  |
+|-----------|-----------------------------------------------------------------------|
+| `commun`  | DTO et énumérations partagés entre le serveur et le client            |
+| `serveur` | API REST, base de données, tâches planifiées (rappels, sauvegardes)   |
+| `client`  | Application de bureau JavaFX (thème AtlantaFX)                        |
+
+Le serveur est le seul composant qui parle à la base de données. Il tourne en
+permanence, ce qui permet d'envoyer les rappels (J-2 avant rendez-vous,
+revisites post-intervention) même si aucun poste client n'est allumé.
+
+## Prérequis (développement)
+
+- JDK 21
+- Maven 3.9+
+- MariaDB (locale, ou via `docker compose up -d`)
+
+## Démarrage rapide
+
+```bash
+# 1. Base de données : au choix
+docker compose up -d                    # option A : conteneur
+sudo mariadb < scripts/creer_bd_dev.sql # option B : MariaDB déjà installée
+
+# 2. Compiler
+mvn package -DskipTests
+
+# 3. Lancer le serveur (applique les migrations Flyway au démarrage)
+java -jar serveur/target/lesourire-serveur-0.1.0-SNAPSHOT.jar
+
+# 4. Lancer le client
+mvn -pl client javafx:run
+```
+
+Compte initial : `admin` / `admin` (**à changer** dès que le module
+Administration sera actif). L'écran de connexion propose aussi un **mode
+démonstration** qui présente l'interface sans serveur.
+
+Configuration du serveur par variables d'environnement :
+`LESOURIRE_BD_URL`, `LESOURIRE_BD_UTILISATEUR`, `LESOURIRE_BD_MOT_DE_PASSE`,
+`LESOURIRE_PORT` (défaut : `8420`).
+
+## Base de données
+
+Le schéma complet (21 tables, toutes les relations posées dès le départ) vit
+dans `serveur/src/main/resources/db/migration/` et est appliqué automatiquement
+par Flyway :
+
+- `V1__schema_initial.sql` — utilisateurs/rôles, patients, assureurs/sociétés,
+  nomenclature en lettres-clés (D/Z, valeurs **versionnées** dans le temps),
+  rendez-vous, rappels, actes, factures/paiements, stock, audit, paramètres ;
+- `V2__donnees_initiales.sql` — compte admin, tarifaire officiel du cabinet
+  (D = Z = 1 200 FCFA), paramètres (fuseau `Africa/Douala`, devise XAF...).
+
+Toute évolution du schéma = un nouveau fichier `V<n>__description.sql`,
+appliqué automatiquement chez le client à la mise à jour du serveur.
+
+## Feuille de route
+
+| Phase | Contenu                                                            | État |
+|-------|--------------------------------------------------------------------|------|
+| 1     | Squelette : BD complète, serveur, client, connexion, navigation    | ✔    |
+| 2     | Module Patients                                                     |      |
+| 3     | Agenda / RDV + rappels mail & WhatsApp (J-2, revisites)             |      |
+| 4     | Facturation (actes D/Z, remises, quotes-parts, paiements)           |      |
+| 5     | Stock (articles, fournisseurs, alertes)                             |      |
+| 6     | Tableau de bord global, comptabilité, administration                |      |
+| 7     | Installeur Windows (jpackage/MSI), service Windows, mises à jour    |      |
+
+## Déploiement prévu chez le client (Windows)
+
+- **Serveur** : jar exécutable installé comme service Windows (WinSW/NSSM) sur
+  le PC principal, avec MariaDB ; sauvegardes quotidiennes automatiques.
+- **Postes** : installeur MSI généré par `jpackage` (JRE embarqué, aucune
+  installation de Java requise), mises à jour distribuées depuis le serveur.
