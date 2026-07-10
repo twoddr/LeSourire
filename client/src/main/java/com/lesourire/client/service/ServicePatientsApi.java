@@ -1,12 +1,15 @@
 package com.lesourire.client.service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.lesourire.client.coeur.ApiClient;
 import com.lesourire.client.coeur.ApiClient.ApiException;
 import com.lesourire.commun.dto.AssureurDTO;
+import com.lesourire.commun.dto.ClotureCouvertureDTO;
+import com.lesourire.commun.dto.CouvertureDTO;
 import com.lesourire.commun.dto.PatientDTO;
 import com.lesourire.commun.dto.SocieteDTO;
 
@@ -27,6 +30,12 @@ public class ServicePatientsApi implements ServicePatients {
     }
 
     @Override
+    public PatientDTO obtenir(Long id) throws ApiException {
+        return api.get("/api/patients/" + id, new TypeReference<PatientDTO>() {
+        });
+    }
+
+    @Override
     public PatientDTO creer(PatientDTO patient) throws ApiException {
         return api.post("/api/patients", patient, new TypeReference<PatientDTO>() {
         });
@@ -36,6 +45,23 @@ public class ServicePatientsApi implements ServicePatients {
     public PatientDTO modifier(PatientDTO patient) throws ApiException {
         return api.put("/api/patients/" + patient.id, patient, new TypeReference<PatientDTO>() {
         });
+    }
+
+    @Override
+    public CouvertureDTO ajouterCouverture(Long patientId, CouvertureDTO couverture)
+            throws ApiException {
+        return api.post("/api/patients/" + patientId + "/couvertures", couverture,
+                new TypeReference<CouvertureDTO>() {
+                });
+    }
+
+    @Override
+    public CouvertureDTO cloturerCouverture(Long patientId, Long couvertureId,
+            LocalDate dateFin, String motifFin) throws ApiException {
+        return api.put("/api/patients/" + patientId + "/couvertures/" + couvertureId + "/cloturer",
+                new ClotureCouvertureDTO(dateFin, motifFin),
+                new TypeReference<CouvertureDTO>() {
+                });
     }
 
     @Override

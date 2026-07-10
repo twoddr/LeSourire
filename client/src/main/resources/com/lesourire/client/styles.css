@@ -242,6 +242,10 @@
     -fx-background-color: -ls-accent;
 }
 
+.ligne-couverture-close {
+    -fx-opacity: 0.55;
+}
+
 /* Modules en préparation */
 
 .placeholder-icone {

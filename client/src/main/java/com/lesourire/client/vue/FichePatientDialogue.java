@@ -1,15 +1,16 @@
 package com.lesourire.client.vue;
 
-import java.math.BigDecimal;
-import java.util.List;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.function.Function;
 
 import com.lesourire.client.coeur.Async;
 import com.lesourire.client.service.ServicePatients;
-import com.lesourire.commun.dto.AssureurDTO;
+import com.lesourire.commun.dto.CouvertureDTO;
 import com.lesourire.commun.dto.PatientDTO;
-import com.lesourire.commun.dto.SocieteDTO;
 
 import javafx.application.Platform;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
@@ -23,6 +24,8 @@ import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
@@ -31,15 +34,23 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 
 /**
  * Fiche patient (création ou modification) : identité et contacts,
- * prise en charge par les tiers payants, informations médicales.
+ * couvertures par les tiers payants, informations médicales.
+ *
+ * Couvertures : en création, elles sont accumulées localement et envoyées
+ * avec le patient ; en modification, chaque ajout/clôture est appliqué
+ * immédiatement sur le serveur.
  */
 public class FichePatientDialogue extends Dialog<PatientDTO> {
 
+    private static final DateTimeFormatter FORMAT_DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
     private final PatientDTO patient;
     private final ServicePatients service;
+    private final boolean creation;
 
     // Identité & contacts
     private final TextField champNom = new TextField();
@@ -57,12 +68,8 @@ public class FichePatientDialogue extends Dialog<PatientDTO> {
     private final TextField champUrgenceNom = new TextField();
     private final TextField champUrgenceTel = new TextField();
 
-    // Prise en charge
-    private final ComboBox<AssureurDTO> champAssureur = new ComboBox<>();
-    private final TextField champNumeroAssure = new TextField();
-    private final TextField champPctAssureur = new TextField();
-    private final ComboBox<SocieteDTO> champSociete = new ComboBox<>();
-    private final TextField champPctSociete = new TextField();
+    // Couvertures
+    private final TableView<CouvertureDTO> tableCouvertures = new TableView<>();
     private final CheckBox champMauvaisPayeur = new CheckBox("Payeur à surveiller");
 
     // Médical
@@ -74,7 +81,7 @@ public class FichePatientDialogue extends Dialog<PatientDTO> {
     public FichePatientDialogue(PatientDTO existant, ServicePatients service) {
         this.service = service;
         this.patient = existant != null ? existant : new PatientDTO();
-        boolean creation = existant == null;
+        this.creation = existant == null;
 
         setTitle(creation ? "Nouveau patient"
                 : "Dossier " + patient.numeroDossier + " — " + patient.nomComplet());
@@ -82,10 +89,10 @@ public class FichePatientDialogue extends Dialog<PatientDTO> {
 
         TabPane onglets = new TabPane(
                 new Tab("Identité & contacts", construireOngletIdentite()),
-                new Tab("Prise en charge", construireOngletPriseEnCharge()),
-                new Tab("Médical & notes", construireOngletMedical(creation)));
+                new Tab("Prise en charge", construireOngletCouvertures()),
+                new Tab("Médical & notes", construireOngletMedical()));
         onglets.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-        onglets.setPrefSize(680, 460);
+        onglets.setPrefSize(720, 480);
 
         getDialogPane().setContent(onglets);
         getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
@@ -99,12 +106,10 @@ public class FichePatientDialogue extends Dialog<PatientDTO> {
         });
 
         remplirDepuis(patient);
-        chargerReferentiels();
+        Platform.runLater(champNom::requestFocus);
 
         setResultConverter(bouton ->
                 bouton == ButtonType.OK ? construireResultat() : null);
-
-        Platform.runLater(champNom::requestFocus);
     }
 
     // ------------------------------------------------------------ onglets
@@ -131,41 +136,78 @@ public class FichePatientDialogue extends Dialog<PatientDTO> {
         return grille;
     }
 
-    private GridPane construireOngletPriseEnCharge() {
-        GridPane grille = nouvelleGrille();
+    private VBox construireOngletCouvertures() {
+        construireTableCouvertures();
 
-        champAssureur.setMaxWidth(Double.MAX_VALUE);
-        champSociete.setMaxWidth(Double.MAX_VALUE);
-        champPctAssureur.setPromptText("vide = % par défaut de l'assureur");
-        champPctSociete.setPromptText("vide = % par défaut de la société");
+        Button boutonAjouter = new Button("Ajouter une couverture");
+        boutonAjouter.setOnAction(e -> ajouterCouverture());
 
-        Button ajouterAssureur = boutonAjout("Créer un assureur",
-                () -> creationRapideAssureur());
-        Button ajouterSociete = boutonAjout("Créer une société",
-                () -> creationRapideSociete());
+        Button boutonCloturer = new Button(creation ? "Retirer" : "Clôturer");
+        boutonCloturer.setOnAction(e -> cloturerOuRetirer());
+        boutonCloturer.disableProperty().bind(
+                tableCouvertures.getSelectionModel().selectedItemProperty().isNull());
 
-        HBox ligneAssureur = new HBox(6, champAssureur, ajouterAssureur);
-        HBox.setHgrow(champAssureur, Priority.ALWAYS);
-        HBox ligneSociete = new HBox(6, champSociete, ajouterSociete);
-        HBox.setHgrow(champSociete, Priority.ALWAYS);
+        HBox actions = new HBox(8, boutonAjouter, boutonCloturer);
 
-        int ligne = 0;
-        champ(grille, ligne, 0, "Assureur", ligneAssureur);
-        champ(grille, ligne++, 2, "N° assuré", champNumeroAssure);
-        champ(grille, ligne++, 0, "% pris en charge (assureur)", champPctAssureur);
-        champ(grille, ligne++, 0, "Société conventionnée", ligneSociete);
-        champ(grille, ligne++, 0, "% pris en charge (société)", champPctSociete);
-        grille.add(champMauvaisPayeur, 0, ligne, 4, 1);
-
-        Label aide = new Label("Les pourcentages saisis ici priment sur les pourcentages "
-                + "par défaut du tiers payant. Ils seront recopiés sur chaque facture.");
+        Label aide = new Label(creation
+                ? "Les couvertures seront créées avec le dossier."
+                : "L'historique est conservé : une couverture ne se modifie pas, "
+                        + "elle se clôture (avec motif) et une nouvelle est créée. "
+                        + "Les ajouts et clôtures sont appliqués immédiatement.");
         aide.getStyleClass().add("note-discrete");
         aide.setWrapText(true);
-        grille.add(aide, 0, ligne + 1, 4, 1);
-        return grille;
+
+        VBox boite = new VBox(10, tableCouvertures, actions, champMauvaisPayeur, aide);
+        boite.setPadding(new Insets(18));
+        VBox.setVgrow(tableCouvertures, Priority.ALWAYS);
+        return boite;
     }
 
-    private GridPane construireOngletMedical(boolean creation) {
+    private void construireTableCouvertures() {
+        tableCouvertures.getColumns().setAll(java.util.List.of(
+                colonne("Type", 90, c -> CouvertureDTO.TYPE_ASSUREUR.equals(c.type)
+                        ? "Assureur" : "Société"),
+                colonne("Tiers payant", 150, c -> c.payeurNom),
+                colonne("N° assuré", 100, c -> c.numeroAssure),
+                colonne("%", 60, c -> c.pourcentageEffectif == null
+                        ? "" : c.pourcentageEffectif.stripTrailingZeros().toPlainString() + " %"),
+                colonne("Début", 90, c -> formater(c.dateDebut)),
+                colonne("Fin", 90, c -> formater(c.dateFin)),
+                colonne("Motif de fin", 140, c -> c.motifFin)));
+        tableCouvertures.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        tableCouvertures.setPlaceholder(new Label("Aucune couverture : le patient paie tout lui-même."));
+        tableCouvertures.setPrefHeight(200);
+
+        // Les couvertures clôturées apparaissent grisées
+        tableCouvertures.setRowFactory(t -> new javafx.scene.control.TableRow<>() {
+            @Override
+            protected void updateItem(CouvertureDTO item, boolean vide) {
+                super.updateItem(item, vide);
+                getStyleClass().remove("ligne-couverture-close");
+                if (!vide && item != null && item.dateFin != null
+                        && item.dateFin.isBefore(LocalDate.now())) {
+                    getStyleClass().add("ligne-couverture-close");
+                }
+            }
+        });
+    }
+
+    private TableColumn<CouvertureDTO, String> colonne(String titre, double largeur,
+            Function<CouvertureDTO, String> extracteur) {
+        TableColumn<CouvertureDTO, String> colonne = new TableColumn<>(titre);
+        colonne.setPrefWidth(largeur);
+        colonne.setCellValueFactory(donnees -> {
+            String valeur = extracteur.apply(donnees.getValue());
+            return new SimpleStringProperty(valeur == null ? "" : valeur);
+        });
+        return colonne;
+    }
+
+    private String formater(LocalDate date) {
+        return date == null ? "" : date.format(FORMAT_DATE);
+    }
+
+    private GridPane construireOngletMedical() {
         GridPane grille = nouvelleGrille();
         champAntecedents.setPrefRowCount(3);
         champAllergies.setPrefRowCount(2);
@@ -181,6 +223,53 @@ public class FichePatientDialogue extends Dialog<PatientDTO> {
             grille.add(champActif, 0, ligne, 4, 1);
         }
         return grille;
+    }
+
+    // ------------------------------------------------------ actions couvertures
+
+    private void ajouterCouverture() {
+        CouvertureDialogue dialogue = new CouvertureDialogue(service);
+        dialogue.initOwner(getDialogPane().getScene().getWindow());
+        dialogue.showAndWait().ifPresent(couverture -> {
+            if (creation) {
+                tableCouvertures.getItems().add(0, couverture);
+                return;
+            }
+            Async.executer(() -> service.ajouterCouverture(patient.id, couverture),
+                    creee -> tableCouvertures.getItems().add(0, creee),
+                    this::afficherErreur);
+        });
+    }
+
+    private void cloturerOuRetirer() {
+        CouvertureDTO selection = tableCouvertures.getSelectionModel().getSelectedItem();
+        if (selection == null) {
+            return;
+        }
+        if (creation || selection.id == null) {
+            tableCouvertures.getItems().remove(selection);
+            return;
+        }
+        if (selection.dateFin != null) {
+            afficherErreur(new IllegalArgumentException("Cette couverture est déjà clôturée."));
+            return;
+        }
+
+        TextInputDialog saisieMotif = new TextInputDialog();
+        saisieMotif.setTitle("Clôturer la couverture");
+        saisieMotif.setHeaderText("Clôture de la couverture " + selection.payeurNom
+                + " à la date d'aujourd'hui");
+        saisieMotif.setContentText("Motif (facultatif) :");
+        saisieMotif.initOwner(getDialogPane().getScene().getWindow());
+        saisieMotif.showAndWait().ifPresent(motif ->
+                Async.executer(
+                        () -> service.cloturerCouverture(patient.id, selection.id,
+                                LocalDate.now(), motif.isBlank() ? null : motif.trim()),
+                        cloturee -> {
+                            int index = tableCouvertures.getItems().indexOf(selection);
+                            tableCouvertures.getItems().set(index, cloturee);
+                        },
+                        this::afficherErreur));
     }
 
     // ------------------------------------------------------ aides de mise en page
@@ -209,103 +298,6 @@ public class FichePatientDialogue extends Dialog<PatientDTO> {
         grille.add(noeud, colonne + 1, ligne, largeur, 1);
     }
 
-    private Button boutonAjout(String infobulle, Runnable action) {
-        Button bouton = new Button("+");
-        bouton.setTooltip(new Tooltip(infobulle));
-        bouton.setOnAction(e -> action.run());
-        return bouton;
-    }
-
-    // ------------------------------------------------------------ données
-
-    private void chargerReferentiels() {
-        Async.executer(service::listerAssureurs, liste -> {
-            champAssureur.getItems().setAll(liste);
-            champAssureur.getItems().add(0, null);
-            selectionnerAssureur(patient.assureurId);
-        }, e -> {
-        });
-        Async.executer(service::listerSocietes, liste -> {
-            champSociete.getItems().setAll(liste);
-            champSociete.getItems().add(0, null);
-            selectionnerSociete(patient.societeId);
-        }, e -> {
-        });
-
-        champAssureur.setButtonCell(celluleAvecVide("— Aucun —"));
-        champAssureur.setCellFactory(l -> celluleAvecVide("— Aucun —"));
-        champSociete.setButtonCell(celluleSocieteAvecVide("— Aucune —"));
-        champSociete.setCellFactory(l -> celluleSocieteAvecVide("— Aucune —"));
-    }
-
-    private javafx.scene.control.ListCell<AssureurDTO> celluleAvecVide(String texteVide) {
-        return new javafx.scene.control.ListCell<>() {
-            @Override
-            protected void updateItem(AssureurDTO item, boolean vide) {
-                super.updateItem(item, vide);
-                setText(vide ? null : item == null ? texteVide : item.nom());
-            }
-        };
-    }
-
-    private javafx.scene.control.ListCell<SocieteDTO> celluleSocieteAvecVide(String texteVide) {
-        return new javafx.scene.control.ListCell<>() {
-            @Override
-            protected void updateItem(SocieteDTO item, boolean vide) {
-                super.updateItem(item, vide);
-                setText(vide ? null : item == null ? texteVide : item.nom());
-            }
-        };
-    }
-
-    private void selectionnerAssureur(Long id) {
-        if (id == null) {
-            return;
-        }
-        champAssureur.getItems().stream()
-                .filter(a -> a != null && id.equals(a.id()))
-                .findFirst()
-                .ifPresent(champAssureur.getSelectionModel()::select);
-    }
-
-    private void selectionnerSociete(Long id) {
-        if (id == null) {
-            return;
-        }
-        champSociete.getItems().stream()
-                .filter(s -> s != null && id.equals(s.id()))
-                .findFirst()
-                .ifPresent(champSociete.getSelectionModel()::select);
-    }
-
-    private void creationRapideAssureur() {
-        TextInputDialog saisie = new TextInputDialog();
-        saisie.setTitle("Nouvel assureur");
-        saisie.setHeaderText("Création rapide d'un assureur");
-        saisie.setContentText("Nom de l'assureur :");
-        saisie.showAndWait().filter(nom -> !nom.isBlank()).ifPresent(nom ->
-                Async.executer(() -> service.creerAssureur(nom.trim(), BigDecimal.ZERO),
-                        cree -> {
-                            champAssureur.getItems().add(cree);
-                            champAssureur.getSelectionModel().select(cree);
-                        },
-                        this::afficherErreur));
-    }
-
-    private void creationRapideSociete() {
-        TextInputDialog saisie = new TextInputDialog();
-        saisie.setTitle("Nouvelle société");
-        saisie.setHeaderText("Création rapide d'une société conventionnée");
-        saisie.setContentText("Nom de la société :");
-        saisie.showAndWait().filter(nom -> !nom.isBlank()).ifPresent(nom ->
-                Async.executer(() -> service.creerSociete(nom.trim(), BigDecimal.ZERO),
-                        cree -> {
-                            champSociete.getItems().add(cree);
-                            champSociete.getSelectionModel().select(cree);
-                        },
-                        this::afficherErreur));
-    }
-
     // ------------------------------------------------------------ résultat
 
     private void remplirDepuis(PatientDTO p) {
@@ -326,9 +318,7 @@ public class FichePatientDialogue extends Dialog<PatientDTO> {
         }
         champUrgenceNom.setText(texte(p.personneUrgenceNom));
         champUrgenceTel.setText(texte(p.personneUrgenceTel));
-        champNumeroAssure.setText(texte(p.numeroAssure));
-        champPctAssureur.setText(p.pourcentageAssureur == null ? "" : p.pourcentageAssureur.toPlainString());
-        champPctSociete.setText(p.pourcentageSociete == null ? "" : p.pourcentageSociete.toPlainString());
+        tableCouvertures.getItems().setAll(p.couvertures);
         champMauvaisPayeur.setSelected(p.mauvaisPayeur);
         champAntecedents.setText(texte(p.antecedents));
         champAllergies.setText(texte(p.allergies));
@@ -341,34 +331,7 @@ public class FichePatientDialogue extends Dialog<PatientDTO> {
             afficherErreur(new IllegalArgumentException("Le nom du patient est obligatoire."));
             return false;
         }
-        if (pourcentageInvalide(champPctAssureur) || pourcentageInvalide(champPctSociete)) {
-            afficherErreur(new IllegalArgumentException(
-                    "Les pourcentages doivent être des nombres entre 0 et 100."));
-            return false;
-        }
         return true;
-    }
-
-    private boolean pourcentageInvalide(TextField champ) {
-        BigDecimal valeur = lirePourcentage(champ);
-        if (champ.getText().trim().isEmpty()) {
-            return false;
-        }
-        return valeur == null
-                || valeur.compareTo(BigDecimal.ZERO) < 0
-                || valeur.compareTo(new BigDecimal("100")) > 0;
-    }
-
-    private BigDecimal lirePourcentage(TextField champ) {
-        String brut = champ.getText().trim().replace(',', '.');
-        if (brut.isEmpty()) {
-            return null;
-        }
-        try {
-            return new BigDecimal(brut);
-        } catch (NumberFormatException e) {
-            return null;
-        }
     }
 
     private PatientDTO construireResultat() {
@@ -387,13 +350,11 @@ public class FichePatientDialogue extends Dialog<PatientDTO> {
         p.ville = vide(champVille.getText());
         p.personneUrgenceNom = vide(champUrgenceNom.getText());
         p.personneUrgenceTel = vide(champUrgenceTel.getText());
-        AssureurDTO assureur = champAssureur.getSelectionModel().getSelectedItem();
-        p.assureurId = assureur == null ? null : assureur.id();
-        p.numeroAssure = vide(champNumeroAssure.getText());
-        p.pourcentageAssureur = lirePourcentage(champPctAssureur);
-        SocieteDTO societe = champSociete.getSelectionModel().getSelectedItem();
-        p.societeId = societe == null ? null : societe.id();
-        p.pourcentageSociete = lirePourcentage(champPctSociete);
+        // En création : les couvertures accumulées partent avec le patient.
+        // En modification : elles ont déjà été appliquées au fil de l'eau.
+        p.couvertures = creation
+                ? new java.util.ArrayList<>(tableCouvertures.getItems())
+                : new java.util.ArrayList<>();
         p.mauvaisPayeur = champMauvaisPayeur.isSelected();
         p.antecedents = vide(champAntecedents.getText());
         p.allergies = vide(champAllergies.getText());
@@ -404,7 +365,7 @@ public class FichePatientDialogue extends Dialog<PatientDTO> {
 
     private void afficherErreur(Exception e) {
         Alert alerte = new Alert(Alert.AlertType.WARNING, e.getMessage(), ButtonType.OK);
-        alerte.setHeaderText("Impossible d'enregistrer");
+        alerte.setHeaderText("Opération impossible");
         alerte.initOwner(getDialogPane().getScene().getWindow());
         alerte.showAndWait();
     }

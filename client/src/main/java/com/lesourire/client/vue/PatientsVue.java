@@ -107,8 +107,8 @@ public class PatientsVue {
                 p.dateNaissance == null ? ""
                         : p.dateNaissance.format(FORMAT_DATE) + "  (" + age(p.dateNaissance) + " ans)");
         TableColumn<PatientDTO, String> colTelephone = colonne("Téléphone", 130, p -> p.telephone);
-        TableColumn<PatientDTO, String> colAssureur = colonne("Assureur", 150, p -> p.assureurNom);
-        TableColumn<PatientDTO, String> colSociete = colonne("Société", 150, p -> p.societeNom);
+        TableColumn<PatientDTO, String> colAssureur = colonne("Assureur", 150, p -> p.assureurActifNom);
+        TableColumn<PatientDTO, String> colSociete = colonne("Société", 150, p -> p.societeActiveNom);
 
         tableau.getColumns().setAll(java.util.List.of(
                 colDossier, colNom, colPrenom, colNaissance, colTelephone, colAssureur, colSociete));
@@ -129,7 +129,7 @@ public class PatientsVue {
             };
             ligne.setOnMouseClicked(e -> {
                 if (e.getClickCount() == 2 && !ligne.isEmpty()) {
-                    ouvrirFiche(ligne.getItem());
+                    ouvrirDossier(ligne.getItem());
                 }
             });
             return ligne;
@@ -166,6 +166,13 @@ public class PatientsVue {
                     labelStatut.setText("");
                     afficherErreur("Impossible de charger les patients", e);
                 });
+    }
+
+    /** Recharge le dossier complet (historique des couvertures) avant ouverture. */
+    private void ouvrirDossier(PatientDTO ligne) {
+        Async.executer(() -> service.obtenir(ligne.id),
+                this::ouvrirFiche,
+                e -> afficherErreur("Impossible d'ouvrir le dossier", e));
     }
 
     private void ouvrirFiche(PatientDTO existant) {

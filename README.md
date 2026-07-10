@@ -72,10 +72,23 @@ par Flyway :
   nomenclature en lettres-clés (D/Z, valeurs **versionnées** dans le temps),
   rendez-vous, rappels, actes, factures/paiements, stock, audit, paramètres ;
 - `V2__donnees_initiales.sql` — compte admin, tarifaire officiel du cabinet
-  (D = Z = 1 200 FCFA), paramètres (fuseau `Africa/Douala`, devise XAF...).
+  (D = Z = 1 200 FCFA), paramètres (fuseau `Africa/Douala`, devise XAF...) ;
+- `V3__suivi_paiements_par_payeur.sql` — montants payés/soldes par payeur sur
+  la facture (colonnes générées), maintenus par triggers sur `paiement`, et
+  vue `v_facture_relance` pour les relances ;
+- `V4__historique_couverture_patient.sql` — couvertures assureur/société
+  **historisées** (`patient_couverture` : jamais de modification, une clôture
+  avec motif puis une nouvelle ligne), trigger anti-chevauchement ;
+- `V5__triggers_stock_et_categories.sql` — mise à jour automatique de
+  `article.quantite_stock` par triggers sur `mouvement_stock`, catégories
+  d'articles initiales.
 
 Toute évolution du schéma = un nouveau fichier `V<n>__description.sql`,
 appliqué automatiquement chez le client à la mise à jour du serveur.
+
+Pour créer la base **sans passer par le serveur** (import direct MariaDB) :
+`scripts/lesourire_complet.sql` contient tout le schéma V1→V5, les données
+initiales et l'historique Flyway (le serveur démarre dessus sans rien rejouer).
 
 ## Feuille de route
 

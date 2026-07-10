@@ -1,7 +1,8 @@
 package com.lesourire.commun.dto;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Fiche patient échangée entre serveur et client.
@@ -35,14 +36,14 @@ public class PatientDTO {
     public String allergies;
     public String notes;
 
-    // Prise en charge
-    public Long assureurId;
-    public String assureurNom;          // renseigné par le serveur (affichage)
-    public String numeroAssure;
-    public BigDecimal pourcentageAssureur;  // null = défaut de l'assureur
-    public Long societeId;
-    public String societeNom;           // renseigné par le serveur (affichage)
-    public BigDecimal pourcentageSociete;   // null = défaut de la société
+    // Prise en charge : historique complet des couvertures (assureur/société).
+    // À la création d'un patient, les couvertures fournies ici sont créées avec lui ;
+    // ensuite, elles se gèrent par les endpoints dédiés (ajout / clôture).
+    public List<CouvertureDTO> couvertures = new ArrayList<>();
+
+    // Renseignés par le serveur pour l'affichage en liste (couvertures actives)
+    public String assureurActifNom;
+    public String societeActiveNom;
 
     public boolean mauvaisPayeur;
     public boolean actif = true;

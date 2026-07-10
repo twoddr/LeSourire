@@ -1,6 +1,5 @@
 package com.lesourire.serveur.entite;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -73,23 +72,6 @@ public class Patient {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_assureur")
-    private Assureur assureur;
-
-    @Column(name = "numero_assure", length = 50)
-    private String numeroAssure;
-
-    @Column(name = "pourcentage_assureur", precision = 5, scale = 2)
-    private BigDecimal pourcentageAssureur;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_societe")
-    private Societe societe;
-
-    @Column(name = "pourcentage_societe", precision = 5, scale = 2)
-    private BigDecimal pourcentageSociete;
-
     @Column(name = "mauvais_payeur", nullable = false)
     private boolean mauvaisPayeur;
 
@@ -126,24 +108,13 @@ public class Patient {
         dto.antecedents = antecedents;
         dto.allergies = allergies;
         dto.notes = notes;
-        if (assureur != null) {
-            dto.assureurId = assureur.getId();
-            dto.assureurNom = assureur.getNom();
-        }
-        dto.numeroAssure = numeroAssure;
-        dto.pourcentageAssureur = pourcentageAssureur;
-        if (societe != null) {
-            dto.societeId = societe.getId();
-            dto.societeNom = societe.getNom();
-        }
-        dto.pourcentageSociete = pourcentageSociete;
         dto.mauvaisPayeur = mauvaisPayeur;
         dto.actif = actif;
         return dto;
     }
 
     /** Recopie les champs modifiables depuis la fiche reçue du client. */
-    public void appliquer(PatientDTO dto, Assureur assureur, Societe societe) {
+    public void appliquer(PatientDTO dto) {
         this.nom = dto.nom;
         this.prenom = dto.prenom;
         this.dateNaissance = dto.dateNaissance;
@@ -160,11 +131,6 @@ public class Patient {
         this.antecedents = dto.antecedents;
         this.allergies = dto.allergies;
         this.notes = dto.notes;
-        this.assureur = assureur;
-        this.numeroAssure = dto.numeroAssure;
-        this.pourcentageAssureur = dto.pourcentageAssureur;
-        this.societe = societe;
-        this.pourcentageSociete = dto.pourcentageSociete;
         this.mauvaisPayeur = dto.mauvaisPayeur;
         this.actif = dto.actif;
     }

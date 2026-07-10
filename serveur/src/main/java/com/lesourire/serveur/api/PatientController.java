@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.lesourire.commun.dto.ClotureCouvertureDTO;
+import com.lesourire.commun.dto.CouvertureDTO;
 import com.lesourire.commun.dto.PatientDTO;
 import com.lesourire.serveur.service.PatientService;
 
@@ -45,5 +47,25 @@ public class PatientController {
     public PatientDTO modifier(@PathVariable Long id, @RequestBody PatientDTO dto,
             Principal principal) {
         return patientService.modifier(id, dto, principal.getName());
+    }
+
+    // ------------------------------------------------------------ couvertures
+
+    @GetMapping("/{id}/couvertures")
+    public List<CouvertureDTO> couvertures(@PathVariable Long id) {
+        return patientService.listerCouvertures(id);
+    }
+
+    @PostMapping("/{id}/couvertures")
+    public CouvertureDTO ajouterCouverture(@PathVariable Long id,
+            @RequestBody CouvertureDTO dto, Principal principal) {
+        return patientService.ajouterCouverture(id, dto, principal.getName());
+    }
+
+    @PutMapping("/{id}/couvertures/{couvertureId}/cloturer")
+    public CouvertureDTO cloturerCouverture(@PathVariable Long id,
+            @PathVariable Long couvertureId,
+            @RequestBody ClotureCouvertureDTO cloture, Principal principal) {
+        return patientService.cloturerCouverture(id, couvertureId, cloture, principal.getName());
     }
 }
