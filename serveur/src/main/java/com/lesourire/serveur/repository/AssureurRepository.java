@@ -9,4 +9,10 @@ import com.lesourire.serveur.entite.Assureur;
 public interface AssureurRepository extends JpaRepository<Assureur, Long> {
 
     List<Assureur> findByActifTrueOrderByNom();
+
+    List<Assureur> findAllByOrderByNomAsc();
+
+    boolean existsByNomIgnoreCase(String nom);
+
+    boolean existsByNomIgnoreCaseAndIdNot(String nom, Long id);
 }

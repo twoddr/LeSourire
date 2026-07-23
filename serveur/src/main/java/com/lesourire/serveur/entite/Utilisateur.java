@@ -54,7 +54,7 @@ public class Utilisateur {
     private LocalDateTime modifieLe;
 
     public UtilisateurDTO versDTO() {
-        return new UtilisateurDTO(id, nomUtilisateur, nom, prenom, role, email);
+        return new UtilisateurDTO(id, nomUtilisateur, nom, prenom, role, email, telephone, actif);
     }
 
     public Long getId() {

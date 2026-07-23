@@ -143,7 +143,7 @@ public class ConnexionVue {
     /** Permet de présenter l'interface sans serveur (démonstrations client). */
     private void ouvrirModeDemonstration() {
         UtilisateurDTO demo = new UtilisateurDTO(
-                0L, "demo", "Démonstration", null, Role.ADMINISTRATEUR, null);
+                0L, "demo", "Démonstration", null, Role.ADMINISTRATEUR, null, null, true);
         Session.ouvrir(demo, new ApiClient(), true);
         onConnexionReussie.run();
     }

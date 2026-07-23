@@ -9,6 +9,7 @@ import org.kordamp.ikonli.material2.Material2AL;
 import org.kordamp.ikonli.material2.Material2MZ;
 
 import com.lesourire.client.coeur.Async;
+import com.lesourire.client.coeur.Dialogues;
 import com.lesourire.client.coeur.Session;
 import com.lesourire.client.service.ServicePatients;
 import com.lesourire.client.service.ServicePatientsApi;
@@ -177,8 +178,7 @@ public class PatientsVue {
 
     private void ouvrirFiche(PatientDTO existant) {
         FichePatientDialogue fiche = new FichePatientDialogue(existant, service);
-        fiche.initOwner(racine.getScene().getWindow());
-        fiche.showAndWait().ifPresent(saisi -> {
+        Dialogues.afficher(fiche, racine.getScene().getWindow()).ifPresent(saisi -> {
             boolean creation = saisi.id == null;
             Async.executer(
                     () -> creation ? service.creer(saisi) : service.modifier(saisi),
@@ -194,7 +194,6 @@ public class PatientsVue {
     private void afficherErreur(String entete, Exception e) {
         Alert alerte = new Alert(Alert.AlertType.ERROR, e.getMessage(), ButtonType.OK);
         alerte.setHeaderText(entete);
-        alerte.initOwner(racine.getScene().getWindow());
-        alerte.showAndWait();
+        Dialogues.afficherSansResultat(alerte, racine.getScene().getWindow());
     }
 }

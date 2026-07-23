@@ -246,6 +246,31 @@
     -fx-opacity: 0.55;
 }
 
+/* Administration */
+
+.sous-titre-section {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -ls-encre;
+}
+
+.badge-lettre {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -ls-accent-sombre;
+    -fx-background-color: #e0f2f7;
+    -fx-background-radius: 8;
+    -fx-padding: 8 12 8 12;
+}
+
+.ligne-alerte-stock {
+    -fx-background-color: #fee2e2;
+}
+
+.ligne-alerte-stock:selected {
+    -fx-background-color: -ls-accent;
+}
+
 /* Modules en préparation */
 
 .placeholder-icone {

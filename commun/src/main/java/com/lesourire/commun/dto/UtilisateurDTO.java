@@ -12,7 +12,9 @@ public record UtilisateurDTO(
         String nom,
         String prenom,
         Role role,
-        String email) {
+        String email,
+        String telephone,
+        boolean actif) {
 
     public String nomComplet() {
         String n = nom == null ? "" : nom;

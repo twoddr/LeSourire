@@ -9,7 +9,6 @@ import com.lesourire.client.service.ServicePatients;
 import com.lesourire.commun.dto.CouvertureDTO;
 import com.lesourire.commun.dto.PatientDTO;
 
-import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -95,6 +94,11 @@ public class FichePatientDialogue extends Dialog<PatientDTO> {
         onglets.setPrefSize(720, 480);
 
         getDialogPane().setContent(onglets);
+        // Taille sur le DialogPane (pas seulement le contenu) : sinon le Stage
+        // s'ouvre souvent trop petit, avant que le TabPane soit correctement mesuré.
+        getDialogPane().setPrefSize(740, 520);
+        getDialogPane().setMinWidth(640);
+        getDialogPane().setMinHeight(420);
         getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
         Button boutonOk = (Button) getDialogPane().lookupButton(ButtonType.OK);
@@ -106,7 +110,13 @@ public class FichePatientDialogue extends Dialog<PatientDTO> {
         });
 
         remplirDepuis(patient);
-        Platform.runLater(champNom::requestFocus);
+        setOnShown(e -> {
+            if (getDialogPane().getScene() != null
+                    && getDialogPane().getScene().getWindow() != null) {
+                getDialogPane().getScene().getWindow().sizeToScene();
+            }
+            champNom.requestFocus();
+        });
 
         setResultConverter(bouton ->
                 bouton == ButtonType.OK ? construireResultat() : null);

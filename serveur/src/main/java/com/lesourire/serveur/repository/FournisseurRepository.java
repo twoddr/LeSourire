@@ -4,13 +4,13 @@ import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.lesourire.serveur.entite.Societe;
+import com.lesourire.serveur.entite.Fournisseur;
 
-public interface SocieteRepository extends JpaRepository<Societe, Long> {
+public interface FournisseurRepository extends JpaRepository<Fournisseur, Long> {
 
-    List<Societe> findByActifTrueOrderByNom();
+    List<Fournisseur> findByActifTrueOrderByNomAsc();
 
-    List<Societe> findAllByOrderByNomAsc();
+    List<Fournisseur> findAllByOrderByNomAsc();
 
     boolean existsByNomIgnoreCase(String nom);
 

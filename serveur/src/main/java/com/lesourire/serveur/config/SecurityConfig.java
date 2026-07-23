@@ -2,6 +2,7 @@ package com.lesourire.serveur.config;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
+import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -27,6 +28,15 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(autorisations -> autorisations
                         .requestMatchers("/api/systeme/**").permitAll()
+                        .requestMatchers("/api/utilisateurs/**", "/api/prestations/**",
+                                "/api/categories-prestation/**", "/api/lettres-cles/**")
+                        .hasRole("ADMINISTRATEUR")
+                        .requestMatchers(HttpMethod.PUT,
+                                "/api/assureurs/**", "/api/societes/**")
+                        .hasRole("ADMINISTRATEUR")
+                        .requestMatchers("/api/articles/**", "/api/categories-article/**",
+                                "/api/fournisseurs/**", "/api/mouvements-stock/**")
+                        .hasAnyRole("DENTISTE", "ASSISTANT", "ADMINISTRATEUR")
                         .requestMatchers("/api/patients/**", "/api/assureurs/**", "/api/societes/**")
                         .hasAnyRole("DENTISTE", "ASSISTANT", "SECRETAIRE", "ADMINISTRATEUR")
                         .anyRequest().authenticated())
