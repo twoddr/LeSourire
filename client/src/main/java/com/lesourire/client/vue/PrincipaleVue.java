@@ -143,6 +143,7 @@ public class PrincipaleVue {
         return switch (module) {
             case TABLEAU_BORD -> TableauBordVue.creer();
             case PATIENTS -> new PatientsVue().getRacine();
+            case AGENDA -> new AgendaVue().getRacine();
             case STOCK -> new StockVue().getRacine();
             case ADMINISTRATION -> new AdministrationVue().getRacine();
             default -> VueModuleEnConstruction.creer(module);

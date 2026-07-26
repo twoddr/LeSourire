@@ -271,6 +271,44 @@
     -fx-background-color: -ls-accent;
 }
 
+/* Agenda */
+
+.panneau-salle-attente {
+    -fx-background-color: #f0f9fb;
+    -fx-background-radius: 12;
+}
+
+.rdv-statut-planifie {
+    -fx-background-color: transparent;
+}
+
+.rdv-statut-confirme {
+    -fx-background-color: #e0f2fe;
+}
+
+.rdv-statut-en-salle-attente {
+    -fx-background-color: #fef3c7;
+}
+
+.rdv-statut-honore {
+    -fx-background-color: #d1fae5;
+}
+
+.rdv-statut-annule,
+.rdv-statut-absent {
+    -fx-background-color: #fee2e2;
+    -fx-opacity: 0.85;
+}
+
+.rdv-statut-confirme:selected,
+.rdv-statut-en-salle-attente:selected,
+.rdv-statut-honore:selected,
+.rdv-statut-annule:selected,
+.rdv-statut-absent:selected {
+    -fx-background-color: -ls-accent;
+    -fx-opacity: 1;
+}
+
 /* Modules en préparation */
 
 .placeholder-icone {

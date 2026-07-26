@@ -20,6 +20,8 @@ public interface UtilisateurRepository extends JpaRepository<Utilisateur, Long> 
 
     long countByRoleAndActifTrue(Role role);
 
+    List<Utilisateur> findByRoleAndActifTrueOrderByNomAscPrenomAsc(Role role);
+
     @Query("""
             SELECT u FROM Utilisateur u
             WHERE (:inclureInactifs = TRUE OR u.actif = TRUE)

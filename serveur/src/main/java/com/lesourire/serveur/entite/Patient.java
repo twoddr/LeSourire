@@ -151,6 +151,28 @@ public class Patient {
         return nom;
     }
 
+    public String getPrenom() {
+        return prenom;
+    }
+
+    public String getTelephone() {
+        return telephone;
+    }
+
+    public String getTelephoneWhatsapp() {
+        return telephoneWhatsapp;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String nomComplet() {
+        String n = nom == null ? "" : nom;
+        String p = prenom == null ? "" : prenom;
+        return (n + " " + p).trim();
+    }
+
     public boolean isActif() {
         return actif;
     }

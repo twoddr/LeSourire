@@ -37,7 +37,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/articles/**", "/api/categories-article/**",
                                 "/api/fournisseurs/**", "/api/mouvements-stock/**")
                         .hasAnyRole("DENTISTE", "ASSISTANT", "ADMINISTRATEUR")
-                        .requestMatchers("/api/patients/**", "/api/assureurs/**", "/api/societes/**")
+                        .requestMatchers("/api/patients/**", "/api/assureurs/**", "/api/societes/**",
+                                "/api/rdv/**", "/api/praticiens/**")
                         .hasAnyRole("DENTISTE", "ASSISTANT", "SECRETAIRE", "ADMINISTRATEUR")
                         .anyRequest().authenticated())
                 .httpBasic(withDefaults());
