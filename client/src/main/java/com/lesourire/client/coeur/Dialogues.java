@@ -8,7 +8,8 @@ import javafx.stage.Stage;
 import javafx.stage.Window;
 
 /**
- * Affichage de dialogues en préservant l'état maximisé de la fenêtre propriétaire.
+ * Affichage de dialogues en préservant l'état maximisé de la fenêtre
+ * propriétaire.
  * Sous Linux, JavaFX retire souvent le maximisé à l'ouverture d'un Dialog modal
  * avec {@code initOwner} — on le rétablit à la fermeture.
  */
@@ -36,4 +37,5 @@ public final class Dialogues {
             Platform.runLater(() -> stage.setMaximized(true));
         }
     }
+
 }

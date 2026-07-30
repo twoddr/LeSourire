@@ -96,10 +96,11 @@ initiales et l'historique Flyway (le serveur démarre dessus sans rien rejouer).
 |-------|--------------------------------------------------------------------|------|
 | 1     | Squelette : BD complète, serveur, client, connexion, navigation    | ✔    |
 | 2     | Module Patients (fiche, recherche, tiers payants, audit)           | ✔    |
-| 3     | Agenda / RDV + rappels mail & WhatsApp (J-2, revisites)             |      |
-| 4     | Facturation (actes D/Z, remises, quotes-parts, paiements)           |      |
-| 5     | Stock (articles, fournisseurs, alertes)                             |      |
-| 6     | Tableau de bord global, comptabilité, administration                |      |
+| 3     | Agenda / RDV + programmation des rappels J-2 (envoi mail/WA ensuite) | ✔    |
+| 4     | Facturation (actes D/Z, remises, quotes-parts, paiements)           | ✔    |
+| 5     | Stock (articles, fournisseurs, alertes)                             | ✔    |
+| 6a    | Administration (utilisateurs, tarifaire, paramètres, sauvegardes)   | ✔    |
+| 6b    | Tableau de bord enrichi + comptabilité / envoi des rappels          |      |
 | 7     | Installeur Windows (jpackage/MSI), service Windows, mises à jour    |      |
 
 ## Déploiement prévu chez le client (Windows)

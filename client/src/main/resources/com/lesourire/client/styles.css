@@ -246,6 +246,33 @@
     -fx-opacity: 0.55;
 }
 
+/* ------------------------------ Facturation ------------------------------ */
+
+.facture-brouillon {
+    -fx-background-color: #fef9c3;
+}
+
+.facture-payee {
+    -fx-background-color: #d1fae5;
+}
+
+.facture-annulee {
+    -fx-background-color: #fee2e2;
+    -fx-opacity: 0.75;
+}
+
+.facture-brouillon:selected,
+.facture-payee:selected,
+.facture-annulee:selected {
+    -fx-background-color: -ls-accent;
+    -fx-opacity: 1;
+}
+
+.total-facture {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
 /* Administration */
 
 .sous-titre-section {

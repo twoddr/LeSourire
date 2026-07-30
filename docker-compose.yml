@@ -7,8 +7,8 @@ services:
     environment:
       MARIADB_ROOT_PASSWORD: root
       MARIADB_DATABASE: lesourire
-      MARIADB_USER: lesourire
-      MARIADB_PASSWORD: lesourire
+      MARIADB_USER: admin
+      MARIADB_PASSWORD: csa-soft
     ports:
       - "3306:3306"
     volumes:

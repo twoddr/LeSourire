@@ -29,10 +29,19 @@ public class SecurityConfig {
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .authorizeHttpRequests(autorisations -> autorisations
                                                 .requestMatchers("/api/systeme/**").permitAll()
+                                                // Le tarifaire se consulte pour facturer, mais ne se modifie
+                                                // qu'en Administration
+                                                .requestMatchers(HttpMethod.GET, "/api/prestations/**",
+                                                                "/api/categories-prestation/**",
+                                                                "/api/lettres-cles/**")
+                                                .authenticated()
                                                 .requestMatchers("/api/utilisateurs/**", "/api/prestations/**",
                                                                 "/api/categories-prestation/**", "/api/lettres-cles/**",
                                                                 "/api/parametres/**", "/api/sauvegardes/**")
                                                 .hasRole("ADMINISTRATEUR")
+                                                .requestMatchers("/api/factures/**")
+                                                .hasAnyRole("DENTISTE", "SECRETAIRE", "COMPTABLE",
+                                                                "ADMINISTRATEUR")
                                                 .requestMatchers(HttpMethod.PUT,
                                                                 "/api/assureurs/**", "/api/societes/**")
                                                 .hasRole("ADMINISTRATEUR")

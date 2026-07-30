@@ -5,7 +5,6 @@ import java.time.Period;
 import java.time.format.DateTimeFormatter;
 
 import org.kordamp.ikonli.javafx.FontIcon;
-import org.kordamp.ikonli.material2.Material2AL;
 import org.kordamp.ikonli.material2.Material2MZ;
 
 import com.lesourire.client.coeur.Async;
@@ -17,6 +16,7 @@ import com.lesourire.client.service.ServicePatientsDemo;
 import com.lesourire.commun.dto.PatientDTO;
 
 import javafx.animation.PauseTransition;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -24,13 +24,11 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
-import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
-import javafx.beans.property.SimpleStringProperty;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -104,9 +102,8 @@ public class PatientsVue {
                 p -> p.numeroDossier);
         TableColumn<PatientDTO, String> colNom = colonne("Nom", 160, p -> p.nom);
         TableColumn<PatientDTO, String> colPrenom = colonne("Prénom", 140, p -> p.prenom);
-        TableColumn<PatientDTO, String> colNaissance = colonne("Naissance", 130, p ->
-                p.dateNaissance == null ? ""
-                        : p.dateNaissance.format(FORMAT_DATE) + "  (" + age(p.dateNaissance) + " ans)");
+        TableColumn<PatientDTO, String> colNaissance = colonne("Naissance", 130, p -> p.dateNaissance == null ? ""
+                : p.dateNaissance.format(FORMAT_DATE) + "  (" + age(p.dateNaissance) + " ans)");
         TableColumn<PatientDTO, String> colTelephone = colonne("Téléphone", 130, p -> p.telephone);
         TableColumn<PatientDTO, String> colAssureur = colonne("Assureur", 150, p -> p.assureurActifNom);
         TableColumn<PatientDTO, String> colSociete = colonne("Société", 150, p -> p.societeActiveNom);

@@ -4,8 +4,8 @@ spring:
 
   datasource:
     url: ${LESOURIRE_BD_URL:jdbc:mariadb://localhost:3306/lesourire}
-    username: ${LESOURIRE_BD_UTILISATEUR:lesourire}
-    password: ${LESOURIRE_BD_MOT_DE_PASSE:lesourire}
+    username: ${LESOURIRE_BD_UTILISATEUR:admin}
+    password: ${LESOURIRE_BD_MOT_DE_PASSE:csa-soft}
 
   jpa:
     hibernate:
@@ -18,6 +18,9 @@ spring:
 
 server:
   port: ${LESOURIRE_PORT:8420}
+  error:
+    # Remonte les messages métier (ResponseStatusException) jusqu'au client
+    include-message: always
 
 lesourire:
   version: 0.1.0

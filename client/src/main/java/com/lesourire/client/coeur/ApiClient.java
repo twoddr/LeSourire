@@ -94,6 +94,13 @@ public class ApiClient {
         return lire(reponse.body(), type);
     }
 
+    /** DELETE authentifié. */
+    public <T> T delete(String chemin, TypeReference<T> type) throws ApiException {
+        HttpResponse<String> reponse = executer(requete("DELETE", chemin, null, enteteAuthorization));
+        verifier(reponse);
+        return lire(reponse.body(), type);
+    }
+
     private HttpRequest requete(String methode, String chemin, Object corps, String entete)
             throws ApiException {
         HttpRequest.Builder builder = HttpRequest.newBuilder()
