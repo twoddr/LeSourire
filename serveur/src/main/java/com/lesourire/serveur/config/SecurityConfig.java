@@ -2,9 +2,9 @@ package com.lesourire.serveur.config;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
-import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -21,36 +21,39 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(autorisations -> autorisations
-                        .requestMatchers("/api/systeme/**").permitAll()
-                        .requestMatchers("/api/utilisateurs/**", "/api/prestations/**",
-                                "/api/categories-prestation/**", "/api/lettres-cles/**")
-                        .hasRole("ADMINISTRATEUR")
-                        .requestMatchers(HttpMethod.PUT,
-                                "/api/assureurs/**", "/api/societes/**")
-                        .hasRole("ADMINISTRATEUR")
-                        .requestMatchers("/api/articles/**", "/api/categories-article/**",
-                                "/api/fournisseurs/**", "/api/mouvements-stock/**")
-                        .hasAnyRole("DENTISTE", "ASSISTANT", "ADMINISTRATEUR")
-                        .requestMatchers("/api/patients/**", "/api/assureurs/**", "/api/societes/**",
-                                "/api/rdv/**", "/api/praticiens/**")
-                        .hasAnyRole("DENTISTE", "ASSISTANT", "SECRETAIRE", "ADMINISTRATEUR")
-                        .anyRequest().authenticated())
-                .httpBasic(withDefaults());
-        return http.build();
-    }
+        @Bean
+        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+                http
+                                .csrf(csrf -> csrf.disable())
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                .authorizeHttpRequests(autorisations -> autorisations
+                                                .requestMatchers("/api/systeme/**").permitAll()
+                                                .requestMatchers("/api/utilisateurs/**", "/api/prestations/**",
+                                                                "/api/categories-prestation/**", "/api/lettres-cles/**",
+                                                                "/api/parametres/**", "/api/sauvegardes/**")
+                                                .hasRole("ADMINISTRATEUR")
+                                                .requestMatchers(HttpMethod.PUT,
+                                                                "/api/assureurs/**", "/api/societes/**")
+                                                .hasRole("ADMINISTRATEUR")
+                                                .requestMatchers("/api/articles/**", "/api/categories-article/**",
+                                                                "/api/fournisseurs/**", "/api/mouvements-stock/**")
+                                                .hasAnyRole("DENTISTE", "ASSISTANT", "ADMINISTRATEUR")
+                                                .requestMatchers("/api/patients/**", "/api/assureurs/**",
+                                                                "/api/societes/**",
+                                                                "/api/rdv/**", "/api/praticiens/**")
+                                                .hasAnyRole("DENTISTE", "ASSISTANT", "SECRETAIRE", "ADMINISTRATEUR")
+                                                .anyRequest().authenticated())
+                                .httpBasic(withDefaults());
+                return http.build();
+        }
 
-    /**
-     * Encodeur délégué : accepte plusieurs formats ({bcrypt}, {noop}...),
-     * ce qui permet de migrer le compte initial vers bcrypt sans casse.
-     */
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
-    }
+        /**
+         * Encodeur délégué : accepte plusieurs formats ({bcrypt}, {noop}...),
+         * ce qui permet de migrer le compte initial vers bcrypt sans casse.
+         */
+        @Bean
+        public PasswordEncoder passwordEncoder() {
+                return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+        }
 }

@@ -9,6 +9,12 @@ import org.kordamp.ikonli.material2.Material2MZ;
 import com.lesourire.client.coeur.Async;
 import com.lesourire.client.coeur.Dialogues;
 import com.lesourire.client.coeur.Session;
+import com.lesourire.client.service.ServiceParametres;
+import com.lesourire.client.service.ServiceParametresApi;
+import com.lesourire.client.service.ServiceParametresDemo;
+import com.lesourire.client.service.ServiceSauvegardes;
+import com.lesourire.client.service.ServiceSauvegardesApi;
+import com.lesourire.client.service.ServiceSauvegardesDemo;
 import com.lesourire.client.service.ServiceTarifaire;
 import com.lesourire.client.service.ServiceTarifaireApi;
 import com.lesourire.client.service.ServiceTarifaireDemo;
@@ -51,6 +57,7 @@ import javafx.util.Duration;
  * Organisé en onglets ; chaque onglet gère un référentiel.
  */
 public class AdministrationVue {
+    private final ServiceSauvegardes serviceSauvegardes;
 
     private final VBox racine = new VBox();
     private final ServiceUtilisateurs serviceUtilisateurs;
@@ -69,6 +76,7 @@ public class AdministrationVue {
     private final TableView<SocieteDTO> tableauSocietes = new TableView<>();
     private final Label labelStatutAssureurs = new Label();
     private final Label labelStatutSocietes = new Label();
+    private final ServiceParametres serviceParametres;
 
     public AdministrationVue() {
         boolean demo = Session.estModeDemonstration();
@@ -81,6 +89,12 @@ public class AdministrationVue {
         this.serviceTarifaire = demo
                 ? new ServiceTarifaireDemo()
                 : new ServiceTarifaireApi(Session.api());
+        this.serviceParametres = demo
+                ? new ServiceParametresDemo()
+                : new ServiceParametresApi(Session.api());
+        this.serviceSauvegardes = demo
+                ? new ServiceSauvegardesDemo()
+                : new ServiceSauvegardesApi(Session.api());
         construire();
         chargerPersonnel();
         chargerAssureurs();
@@ -103,7 +117,12 @@ public class AdministrationVue {
                 new Tab("Personnel", construireOngletPersonnel()),
                 new Tab("Tiers payants", construireOngletTiersPayants()),
                 new Tab("Tarifaire",
-                        new TarifairePanneau(serviceTarifaire, this::afficherErreur).getRacine()));
+                        new TarifairePanneau(serviceTarifaire, this::afficherErreur).getRacine()),
+                new Tab("Paramètres",
+                        new ParametresPanneau(serviceParametres, this::afficherErreur).getRacine()),
+                new Tab("Sauvegardes",
+                        new SauvegardesPanneau(serviceSauvegardes, this::afficherErreur).getRacine()));
+
         onglets.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         VBox.setVgrow(onglets, Priority.ALWAYS);
 
@@ -339,39 +358,39 @@ public class AdministrationVue {
     private void ouvrirFicheAssureur(AssureurDTO existant) {
         Dialogues.afficher(FicheTiersPayantDialogue.assureur(existant),
                 racine.getScene().getWindow()).ifPresent(saisie -> {
-            AssureurDTO dto = new AssureurDTO(
-                    existant == null ? null : existant.id(),
-                    saisie.nom(), saisie.telephone(), saisie.email(),
-                    saisie.pourcentage(), saisie.actif());
-            Async.executer(
-                    () -> existant == null
-                            ? serviceTiersPayants.creerAssureur(dto)
-                            : serviceTiersPayants.modifierAssureur(existant.id(), dto),
-                    ok -> chargerAssureurs(),
-                    e -> {
-                        afficherErreur("Impossible d'enregistrer l'assureur", e);
-                        ouvrirFicheAssureur(dto);
-                    });
-        });
+                    AssureurDTO dto = new AssureurDTO(
+                            existant == null ? null : existant.id(),
+                            saisie.nom(), saisie.telephone(), saisie.email(),
+                            saisie.pourcentage(), saisie.actif());
+                    Async.executer(
+                            () -> existant == null
+                                    ? serviceTiersPayants.creerAssureur(dto)
+                                    : serviceTiersPayants.modifierAssureur(existant.id(), dto),
+                            ok -> chargerAssureurs(),
+                            e -> {
+                                afficherErreur("Impossible d'enregistrer l'assureur", e);
+                                ouvrirFicheAssureur(dto);
+                            });
+                });
     }
 
     private void ouvrirFicheSociete(SocieteDTO existante) {
         Dialogues.afficher(FicheTiersPayantDialogue.societe(existante),
                 racine.getScene().getWindow()).ifPresent(saisie -> {
-            SocieteDTO dto = new SocieteDTO(
-                    existante == null ? null : existante.id(),
-                    saisie.nom(), saisie.telephone(), saisie.email(),
-                    saisie.pourcentage(), saisie.actif());
-            Async.executer(
-                    () -> existante == null
-                            ? serviceTiersPayants.creerSociete(dto)
-                            : serviceTiersPayants.modifierSociete(existante.id(), dto),
-                    ok -> chargerSocietes(),
-                    e -> {
-                        afficherErreur("Impossible d'enregistrer la société", e);
-                        ouvrirFicheSociete(dto);
-                    });
-        });
+                    SocieteDTO dto = new SocieteDTO(
+                            existante == null ? null : existante.id(),
+                            saisie.nom(), saisie.telephone(), saisie.email(),
+                            saisie.pourcentage(), saisie.actif());
+                    Async.executer(
+                            () -> existante == null
+                                    ? serviceTiersPayants.creerSociete(dto)
+                                    : serviceTiersPayants.modifierSociete(existante.id(), dto),
+                            ok -> chargerSocietes(),
+                            e -> {
+                                afficherErreur("Impossible d'enregistrer la société", e);
+                                ouvrirFicheSociete(dto);
+                            });
+                });
     }
 
     // ----------------------------------------------------------------- utils
@@ -385,7 +404,8 @@ public class AdministrationVue {
 
     private static String suffixeDemo() {
         return Session.estModeDemonstration()
-                ? " — mode démonstration, rien n'est enregistré" : "";
+                ? " — mode démonstration, rien n'est enregistré"
+                : "";
     }
 
     private static <T> TableColumn<T, String> colonne(String titre, double largeur,
