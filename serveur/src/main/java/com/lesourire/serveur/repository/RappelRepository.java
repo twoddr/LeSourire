@@ -12,7 +12,9 @@ import com.lesourire.serveur.entite.Rappel;
 
 public interface RappelRepository extends JpaRepository<Rappel, Long> {
 
-    @Modifying(clearAutomatically = true)
+    // flushAutomatically : sans ça, un save() non encore flushé est perdu quand
+    // clearAutomatically vide le contexte (ex. modification d'heure de RDV).
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             UPDATE Rappel r SET r.statut = :annule
             WHERE r.rdv.id = :rdvId

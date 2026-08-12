@@ -36,8 +36,18 @@ public final class Facturation {
 
     /** Qui règle une partie de la facture (quote-part). */
     public enum Payeur {
-        PATIENT,
-        ASSUREUR,
-        SOCIETE
+        PATIENT("Patient"),
+        ASSUREUR("Assureur"),
+        SOCIETE("Société");
+
+        private final String libelle;
+
+        Payeur(String libelle) {
+            this.libelle = libelle;
+        }
+
+        public String getLibelle() {
+            return libelle;
+        }
     }
 }

@@ -38,10 +38,10 @@ public enum Module {
 
     STOCK("Stock", Material2MZ.SHOPPING_CART,
             "Articles et fournisseurs, entrées et sorties, alertes de seuil et de péremption.",
-            Set.of(DENTISTE, ASSISTANT, ADMINISTRATEUR)),
+            Set.of(DENTISTE, ASSISTANT)),
 
     COMPTABILITE("Comptabilité", Material2AL.ACCOUNT_BALANCE,
-            "Encaissements du jour, impayés, journaux et états destinés au comptable.",
+            "Encaissements du jour, impayés et journal des paiements (administrateur / comptable).",
             Set.of(COMPTABLE, ADMINISTRATEUR)),
 
     ADMINISTRATION("Administration", Material2MZ.SETTINGS,

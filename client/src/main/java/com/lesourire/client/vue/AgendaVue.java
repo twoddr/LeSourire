@@ -1,9 +1,11 @@
 package com.lesourire.client.vue;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -25,7 +27,6 @@ import com.lesourire.commun.StatutRdv;
 import com.lesourire.commun.dto.RdvDTO;
 import com.lesourire.commun.dto.UtilisateurDTO;
 
-import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -37,9 +38,8 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableRow;
-import javafx.scene.control.TableView;
+import javafx.scene.control.ToggleButton;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -48,31 +48,41 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.util.StringConverter;
 
-/** Module Agenda : vue journée des rendez-vous et salle d'attente. */
+/** Module Agenda : grille horaire jour/semaine et salle d'attente. */
 public class AgendaVue {
 
     private static final DateTimeFormatter FORMAT_JOUR =
             DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.FRENCH);
+    private static final DateTimeFormatter FORMAT_SEMAINE_DEBUT =
+            DateTimeFormatter.ofPattern("d MMM", Locale.FRENCH);
+    private static final DateTimeFormatter FORMAT_SEMAINE_FIN =
+            DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.FRENCH);
     private static final DateTimeFormatter FORMAT_HEURE = DateTimeFormatter.ofPattern("HH:mm");
 
     private final BorderPane racine = new BorderPane();
     private final ServiceRdv serviceRdv;
     private final ServicePatients servicePatients;
 
-    private LocalDate jour = LocalDate.now();
-    private final Label labelJour = new Label();
+    private LocalDate ancre = LocalDate.now();
+    private boolean modeSemaine = false;
+
+    private final Label labelPeriode = new Label();
     private final ComboBox<UtilisateurDTO> filtrePraticien = new ComboBox<>();
-    private final TableView<RdvDTO> tableau = new TableView<>();
+    private final AgendaGrille grille = new AgendaGrille();
     private final ListView<RdvDTO> salleAttente = new ListView<>();
+    private final VBox panneauSalle = new VBox();
     private final Label labelStatut = new Label();
+    private final Button btnPrec = new Button();
+    private final Button btnSuiv = new Button();
     private List<UtilisateurDTO> praticiens = new ArrayList<>();
+    private RdvDTO selectionSalle;
 
     public AgendaVue() {
         boolean demo = Session.estModeDemonstration();
         this.serviceRdv = demo ? new ServiceRdvDemo() : new ServiceRdvApi(Session.api());
         this.servicePatients = demo ? new ServicePatientsDemo() : new ServicePatientsApi(Session.api());
         construire();
-        chargerPraticiensPuisJournee();
+        chargerPraticiensPuisAgenda();
     }
 
     public Node getRacine() {
@@ -86,29 +96,48 @@ public class AgendaVue {
         Label titre = new Label("Agenda");
         titre.getStyleClass().add("titre-page");
 
-        Button btnPrec = new Button();
+        ToggleGroup modes = new ToggleGroup();
+        ToggleButton btnJour = new ToggleButton("Jour");
+        ToggleButton btnSemaine = new ToggleButton("Semaine");
+        btnJour.setToggleGroup(modes);
+        btnSemaine.setToggleGroup(modes);
+        btnJour.setSelected(true);
+        btnJour.getStyleClass().add("agenda-toggle");
+        btnSemaine.getStyleClass().add("agenda-toggle");
+        modes.selectedToggleProperty().addListener((o, ancien, selected) -> {
+            if (selected == null) {
+                if (ancien != null) {
+                    ancien.setSelected(true);
+                }
+                return;
+            }
+            modeSemaine = selected == btnSemaine;
+            mettreAJourTooltipsNav();
+            chargerAgenda();
+        });
+        HBox toggle = new HBox(0, btnJour, btnSemaine);
+        toggle.getStyleClass().add("agenda-toggle-groupe");
+
         btnPrec.setGraphic(new FontIcon(Material2AL.CHEVRON_LEFT));
-        btnPrec.setTooltip(new Tooltip("Jour précédent"));
         btnPrec.setOnAction(e -> {
-            jour = jour.minusDays(1);
-            chargerJournee();
+            ancre = modeSemaine ? ancre.minusWeeks(1) : ancre.minusDays(1);
+            chargerAgenda();
         });
 
         Button btnAuj = new Button("Aujourd'hui");
         btnAuj.setOnAction(e -> {
-            jour = LocalDate.now();
-            chargerJournee();
+            ancre = LocalDate.now();
+            chargerAgenda();
         });
 
-        Button btnSuiv = new Button();
         btnSuiv.setGraphic(new FontIcon(Material2AL.CHEVRON_RIGHT));
-        btnSuiv.setTooltip(new Tooltip("Jour suivant"));
         btnSuiv.setOnAction(e -> {
-            jour = jour.plusDays(1);
-            chargerJournee();
+            ancre = modeSemaine ? ancre.plusWeeks(1) : ancre.plusDays(1);
+            chargerAgenda();
         });
+        mettreAJourTooltipsNav();
 
-        labelJour.getStyleClass().add("sous-titre-page");
+        labelPeriode.getStyleClass().add("sous-titre-page");
 
         filtrePraticien.setPromptText("Tous les praticiens");
         filtrePraticien.setConverter(new StringConverter<>() {
@@ -122,12 +151,12 @@ public class AgendaVue {
                 return null;
             }
         });
-        filtrePraticien.setOnAction(e -> chargerJournee());
+        filtrePraticien.setOnAction(e -> chargerAgenda());
         filtrePraticien.setPrefWidth(200);
 
         Button actualiser = new Button();
         actualiser.setGraphic(new FontIcon(Material2MZ.REFRESH));
-        actualiser.setOnAction(e -> chargerJournee());
+        actualiser.setOnAction(e -> chargerAgenda());
 
         Button nouveau = new Button("Nouveau RDV");
         nouveau.setGraphic(new FontIcon(Material2AL.ADD));
@@ -137,15 +166,17 @@ public class AgendaVue {
         Region espace = new Region();
         HBox.setHgrow(espace, Priority.ALWAYS);
 
-        HBox bandeau = new HBox(10, titre, espace, btnPrec, btnAuj, btnSuiv, filtrePraticien,
-                actualiser, nouveau);
+        HBox bandeau = new HBox(10, titre, toggle, espace, btnPrec, btnAuj, btnSuiv,
+                filtrePraticien, actualiser, nouveau);
         bandeau.setAlignment(Pos.CENTER_LEFT);
 
-        HBox dateLigne = new HBox(labelJour);
+        HBox dateLigne = new HBox(labelPeriode);
         dateLigne.setPadding(new Insets(8, 0, 12, 0));
 
-        construireTableau();
-        VBox.setVgrow(tableau, Priority.ALWAYS);
+        grille.setOnCreer(this::ouvrirFicheAuCreneau);
+        grille.setOnOuvrir(this::ouvrirFiche);
+        grille.setOnSelection(rdv -> selectionSalle = null);
+        VBox.setVgrow(grille, Priority.ALWAYS);
 
         HBox actionsStatut = new HBox(8,
                 boutonStatut("Confirmer", StatutRdv.CONFIRME),
@@ -157,14 +188,15 @@ public class AgendaVue {
 
         labelStatut.getStyleClass().add("note-discrete");
 
-        VBox centre = new VBox(10, tableau, actionsStatut, labelStatut);
+        VBox centre = new VBox(10, grille, actionsStatut, labelStatut);
         HBox.setHgrow(centre, Priority.ALWAYS);
+        VBox.setVgrow(grille, Priority.ALWAYS);
 
         Label titreSalle = new Label("Salle d'attente");
         titreSalle.getStyleClass().add("sous-titre-section");
         construireSalleAttente();
         VBox.setVgrow(salleAttente, Priority.ALWAYS);
-        VBox panneauSalle = new VBox(10, titreSalle, salleAttente);
+        panneauSalle.getChildren().setAll(titreSalle, salleAttente);
         panneauSalle.setPrefWidth(260);
         panneauSalle.getStyleClass().add("panneau-salle-attente");
         panneauSalle.setPadding(new Insets(12));
@@ -177,43 +209,15 @@ public class AgendaVue {
         racine.setCenter(corps);
     }
 
+    private void mettreAJourTooltipsNav() {
+        btnPrec.setTooltip(new Tooltip(modeSemaine ? "Semaine précédente" : "Jour précédent"));
+        btnSuiv.setTooltip(new Tooltip(modeSemaine ? "Semaine suivante" : "Jour suivant"));
+    }
+
     private Button boutonStatut(String libelle, StatutRdv statut) {
         Button b = new Button(libelle);
         b.setOnAction(e -> appliquerStatut(statut));
         return b;
-    }
-
-    private void construireTableau() {
-        tableau.getColumns().setAll(
-                col("Heure", 90, r -> r.debut.format(FORMAT_HEURE)
-                        + " – " + r.fin.format(FORMAT_HEURE)),
-                col("Patient", 180, r -> r.patientNom),
-                col("Tél.", 110, r -> r.patientTelephone == null ? "" : r.patientTelephone),
-                col("Type", 120, r -> r.type.getLibelle()),
-                col("Statut", 130, r -> r.statut.getLibelle()),
-                col("Motif", 180, r -> r.motif == null ? "" : r.motif),
-                col("Praticien", 140, r -> r.praticienNom));
-        tableau.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        tableau.setPlaceholder(new Label("Aucun rendez-vous ce jour."));
-        tableau.setRowFactory(t -> {
-            TableRow<RdvDTO> ligne = new TableRow<>() {
-                @Override
-                protected void updateItem(RdvDTO item, boolean vide) {
-                    super.updateItem(item, vide);
-                    getStyleClass().removeIf(c -> c.startsWith("rdv-statut-"));
-                    if (!vide && item != null && item.statut != null) {
-                        getStyleClass().add("rdv-statut-"
-                                + item.statut.name().toLowerCase(Locale.ROOT).replace('_', '-'));
-                    }
-                }
-            };
-            ligne.setOnMouseClicked(e -> {
-                if (e.getClickCount() == 2 && !ligne.isEmpty()) {
-                    ouvrirFiche(ligne.getItem());
-                }
-            });
-            return ligne;
-        });
     }
 
     private void construireSalleAttente() {
@@ -230,6 +234,9 @@ public class AgendaVue {
                 }
             }
         });
+        salleAttente.getSelectionModel().selectedItemProperty().addListener((o, a, n) -> {
+            selectionSalle = n;
+        });
         salleAttente.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2 && salleAttente.getSelectionModel().getSelectedItem() != null) {
                 ouvrirFiche(salleAttente.getSelectionModel().getSelectedItem());
@@ -238,18 +245,7 @@ public class AgendaVue {
         salleAttente.setPlaceholder(new Label("Personne en attente"));
     }
 
-    private static TableColumn<RdvDTO, String> col(String titre, double largeur,
-            java.util.function.Function<RdvDTO, String> extracteur) {
-        TableColumn<RdvDTO, String> c = new TableColumn<>(titre);
-        c.setPrefWidth(largeur);
-        c.setCellValueFactory(d -> {
-            String v = extracteur.apply(d.getValue());
-            return new SimpleStringProperty(v == null ? "" : v);
-        });
-        return c;
-    }
-
-    private void chargerPraticiensPuisJournee() {
+    private void chargerPraticiensPuisAgenda() {
         Async.executer(serviceRdv::praticiens,
                 liste -> {
                     praticiens = liste;
@@ -258,27 +254,51 @@ public class AgendaVue {
                     options.addAll(liste);
                     filtrePraticien.setItems(FXCollections.observableArrayList(options));
                     filtrePraticien.setValue(null);
-                    chargerJournee();
+                    chargerAgenda();
                 },
                 e -> {
                     afficherErreur("Impossible de charger les praticiens", e);
-                    chargerJournee();
+                    chargerAgenda();
                 });
     }
 
-    private void chargerJournee() {
-        labelJour.setText(capitalize(jour.format(FORMAT_JOUR)));
-        LocalDateTime debut = jour.atStartOfDay();
-        LocalDateTime fin = jour.plusDays(1).atStartOfDay();
+    private LocalDate debutPeriode() {
+        if (modeSemaine) {
+            return ancre.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        }
+        return ancre;
+    }
+
+    private int nbJours() {
+        return modeSemaine ? 7 : 1;
+    }
+
+    private void chargerAgenda() {
+        LocalDate debut = debutPeriode();
+        int jours = nbJours();
+        LocalDate finExclue = debut.plusDays(jours);
+
+        if (modeSemaine) {
+            labelPeriode.setText("Semaine du " + debut.format(FORMAT_SEMAINE_DEBUT)
+                    + " au " + finExclue.minusDays(1).format(FORMAT_SEMAINE_FIN));
+        } else {
+            labelPeriode.setText(capitalize(debut.format(FORMAT_JOUR)));
+        }
+
+        panneauSalle.setVisible(!modeSemaine);
+        panneauSalle.setManaged(!modeSemaine);
+
         UtilisateurDTO filtre = filtrePraticien.getValue();
         Long praticienId = filtre == null ? null : filtre.id();
         labelStatut.setText("Chargement…");
 
-        Async.executer(() -> serviceRdv.lister(debut, fin, praticienId),
+        Async.executer(() -> serviceRdv.lister(debut.atStartOfDay(), finExclue.atStartOfDay(), praticienId),
                 liste -> {
-                    tableau.getItems().setAll(liste);
+                    grille.afficher(debut, jours, liste);
+                    LocalDate jourSalle = modeSemaine ? LocalDate.now() : debut;
                     salleAttente.getItems().setAll(liste.stream()
                             .filter(r -> r.statut == StatutRdv.EN_SALLE_ATTENTE)
+                            .filter(r -> r.debut != null && r.debut.toLocalDate().equals(jourSalle))
                             .toList());
                     labelStatut.setText(liste.size() + " rendez-vous"
                             + (Session.estModeDemonstration()
@@ -288,6 +308,13 @@ public class AgendaVue {
                     labelStatut.setText("");
                     afficherErreur("Impossible de charger l'agenda", e);
                 });
+    }
+
+    private void ouvrirFicheAuCreneau(LocalDateTime debut) {
+        RdvDTO prefill = new RdvDTO();
+        prefill.debut = debut;
+        prefill.fin = debut.plusMinutes(30);
+        ouvrirFiche(prefill);
     }
 
     private void ouvrirFiche(RdvDTO existant) {
@@ -305,6 +332,7 @@ public class AgendaVue {
         RdvDTO prefill = existant;
         if (prefill == null) {
             prefill = new RdvDTO();
+            LocalDate jour = modeSemaine ? LocalDate.now() : debutPeriode();
             prefill.debut = LocalDateTime.of(jour, LocalTime.of(9, 0));
             prefill.fin = prefill.debut.plusMinutes(30);
         }
@@ -314,7 +342,12 @@ public class AgendaVue {
             boolean creation = saisie.id == null;
             Async.executer(
                     () -> creation ? serviceRdv.creer(saisie) : serviceRdv.modifier(saisie.id, saisie),
-                    ok -> chargerJournee(),
+                    ok -> {
+                        if (saisie.debut != null) {
+                            ancre = saisie.debut.toLocalDate();
+                        }
+                        chargerAgenda();
+                    },
                     e -> {
                         afficherErreur("Impossible d'enregistrer le rendez-vous", e);
                         ouvrirFiche(saisie);
@@ -323,7 +356,10 @@ public class AgendaVue {
     }
 
     private void appliquerStatut(StatutRdv statut) {
-        RdvDTO sel = tableau.getSelectionModel().getSelectedItem();
+        RdvDTO sel = grille.getSelection();
+        if (sel == null) {
+            sel = selectionSalle;
+        }
         if (sel == null) {
             sel = salleAttente.getSelectionModel().getSelectedItem();
         }
@@ -334,7 +370,7 @@ public class AgendaVue {
         }
         Long id = sel.id;
         Async.executer(() -> serviceRdv.changerStatut(id, statut),
-                ok -> chargerJournee(),
+                ok -> chargerAgenda(),
                 e -> afficherErreur("Impossible de changer le statut", e));
     }
 

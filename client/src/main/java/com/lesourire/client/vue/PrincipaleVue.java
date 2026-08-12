@@ -146,6 +146,7 @@ public class PrincipaleVue {
             case AGENDA -> new AgendaVue().getRacine();
             case FACTURATION -> new FacturationVue().getRacine();
             case STOCK -> new StockVue().getRacine();
+            case COMPTABILITE -> new ComptabiliteVue().getRacine();
             case ADMINISTRATION -> new AdministrationVue().getRacine();
             default -> VueModuleEnConstruction.creer(module);
         };

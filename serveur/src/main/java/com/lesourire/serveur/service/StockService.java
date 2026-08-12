@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import jakarta.persistence.EntityManager;
+
 import com.lesourire.commun.TypeMouvementStock;
 import com.lesourire.commun.dto.ArticleDTO;
 import com.lesourire.commun.dto.CategorieArticleDTO;
@@ -33,17 +35,20 @@ public class StockService {
     private final FournisseurRepository fournisseurRepository;
     private final MouvementStockRepository mouvementRepository;
     private final AuditService auditService;
+    private final EntityManager entityManager;
 
     public StockService(ArticleRepository articleRepository,
             CategorieArticleRepository categorieRepository,
             FournisseurRepository fournisseurRepository,
             MouvementStockRepository mouvementRepository,
-            AuditService auditService) {
+            AuditService auditService,
+            EntityManager entityManager) {
         this.articleRepository = articleRepository;
         this.categorieRepository = categorieRepository;
         this.fournisseurRepository = fournisseurRepository;
         this.mouvementRepository = mouvementRepository;
         this.auditService = auditService;
+        this.entityManager = entityManager;
     }
 
     // ------------------------------------------------------------ catégories
@@ -183,9 +188,12 @@ public class StockService {
             m.setFournisseur(f);
         }
 
-        m = mouvementRepository.save(m);
+        // flush : le trigger SQL met à jour article.quantite_stock immédiatement
+        m = mouvementRepository.saveAndFlush(m);
 
         if (dto.type == TypeMouvementStock.ENTREE && dto.prixUnitaire != null) {
+            // Recharger : sinon Hibernate réécrit l'ancien stock (0) par-dessus le trigger
+            entityManager.refresh(article);
             article.setPrixAchatDernier(dto.prixUnitaire);
             articleRepository.save(article);
         }

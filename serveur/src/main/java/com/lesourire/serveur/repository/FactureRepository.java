@@ -31,4 +31,13 @@ public interface FactureRepository extends JpaRepository<Facture, Long> {
     List<Facture> rechercher(@Param("q") String q, @Param("statut") StatutFacture statut);
 
     List<Facture> findByPatientIdOrderByDateFactureDesc(Long patientId);
+
+    /** Relances par payeur (vue SQL V3). */
+    @Query(value = """
+            SELECT id, numero, date_facture, date_echeance,
+                   patient_nom, patient_prenom, payeur_type, payeur_nom, solde
+            FROM v_facture_relance
+            ORDER BY (date_echeance IS NULL), date_echeance, numero, payeur_type
+            """, nativeQuery = true)
+    List<Object[]> listerRelances();
 }

@@ -112,7 +112,8 @@ public class RdvService {
         if (dto.statut != null) {
             rdv.setStatut(dto.statut);
         }
-        rdv = rdvRepository.save(rdv);
+        // flush avant l'UPDATE des rappels (sinon clearAutomatically annule la modif)
+        rdv = rdvRepository.saveAndFlush(rdv);
 
         if (!ancienDebut.equals(rdv.getDebut())
                 || EnumSet.of(StatutRdv.ANNULE, StatutRdv.ABSENT).contains(rdv.getStatut())) {
@@ -133,7 +134,7 @@ public class RdvService {
         }
         Rdv rdv = trouver(id);
         rdv.setStatut(statut);
-        rdv = rdvRepository.save(rdv);
+        rdv = rdvRepository.saveAndFlush(rdv);
 
         if (statut == StatutRdv.ANNULE || statut == StatutRdv.ABSENT) {
             annulerRappelsEnAttente(rdv.getId());

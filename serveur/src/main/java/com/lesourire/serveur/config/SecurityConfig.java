@@ -42,12 +42,14 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/factures/**")
                                                 .hasAnyRole("DENTISTE", "SECRETAIRE", "COMPTABLE",
                                                                 "ADMINISTRATEUR")
+                                                .requestMatchers("/api/comptabilite/**")
+                                                .hasAnyRole("COMPTABLE", "ADMINISTRATEUR")
                                                 .requestMatchers(HttpMethod.PUT,
                                                                 "/api/assureurs/**", "/api/societes/**")
                                                 .hasRole("ADMINISTRATEUR")
                                                 .requestMatchers("/api/articles/**", "/api/categories-article/**",
                                                                 "/api/fournisseurs/**", "/api/mouvements-stock/**")
-                                                .hasAnyRole("DENTISTE", "ASSISTANT", "ADMINISTRATEUR")
+                                                .hasAnyRole("DENTISTE", "ASSISTANT")
                                                 .requestMatchers("/api/patients/**", "/api/assureurs/**",
                                                                 "/api/societes/**",
                                                                 "/api/rdv/**", "/api/praticiens/**")

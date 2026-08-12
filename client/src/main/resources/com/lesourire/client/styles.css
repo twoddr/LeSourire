@@ -305,6 +305,124 @@
     -fx-background-radius: 12;
 }
 
+.agenda-toggle-groupe {
+    -fx-background-color: #e0f2f7;
+    -fx-background-radius: 8;
+    -fx-padding: 2;
+}
+
+.agenda-toggle {
+    -fx-background-radius: 6;
+    -fx-padding: 6 12 6 12;
+}
+
+.agenda-toggle:selected {
+    -fx-background-color: -ls-accent;
+    -fx-text-fill: white;
+}
+
+.agenda-grille {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-border-color: #d9e8ec;
+    -fx-border-radius: 10;
+}
+
+.agenda-entetes-jours {
+    -fx-border-color: transparent transparent #d9e8ec transparent;
+    -fx-padding: 0 0 0 0;
+}
+
+.agenda-entete-jour {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #374151;
+    -fx-padding: 8 4 8 4;
+}
+
+.agenda-entete-aujourdhui {
+    -fx-text-fill: -ls-accent-sombre;
+    -fx-background-color: #e0f2f7;
+}
+
+.agenda-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+.agenda-echelle-heures {
+    -fx-background-color: #f8fafb;
+    -fx-border-color: transparent #d9e8ec transparent transparent;
+}
+
+.agenda-label-heure {
+    -fx-font-size: 11px;
+    -fx-text-fill: #6b7280;
+}
+
+.agenda-ligne-heure {
+    -fx-stroke: #d1d5db;
+    -fx-stroke-width: 1;
+}
+
+.agenda-ligne-demi {
+    -fx-stroke: #eef2f4;
+    -fx-stroke-width: 1;
+}
+
+.agenda-ligne-jour {
+    -fx-stroke: #c5d8de;
+    -fx-stroke-width: 1;
+}
+
+.agenda-bloc-rdv {
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+    -fx-border-color: rgba(15, 46, 56, 0.12);
+    -fx-border-width: 1;
+    -fx-cursor: hand;
+}
+
+.agenda-bloc-titre {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -ls-encre;
+}
+
+.agenda-bloc-detail {
+    -fx-font-size: 10px;
+    -fx-text-fill: #4b5563;
+}
+
+.agenda-bloc-selectionne {
+    -fx-border-color: -ls-accent;
+    -fx-border-width: 2;
+    -fx-effect: dropshadow(gaussian, rgba(14, 116, 144, 0.35), 8, 0.2, 0, 1);
+}
+
+.rdv-bloc-planifie {
+    -fx-background-color: #f3f4f6;
+}
+
+.rdv-bloc-confirme {
+    -fx-background-color: #e0f2fe;
+}
+
+.rdv-bloc-en-salle-attente {
+    -fx-background-color: #fef3c7;
+}
+
+.rdv-bloc-honore {
+    -fx-background-color: #d1fae5;
+}
+
+.rdv-bloc-annule,
+.rdv-bloc-absent {
+    -fx-background-color: #fee2e2;
+    -fx-opacity: 0.9;
+}
+
+/* Anciennes classes table (conservées si réutilisées ailleurs) */
 .rdv-statut-planifie {
     -fx-background-color: transparent;
 }
