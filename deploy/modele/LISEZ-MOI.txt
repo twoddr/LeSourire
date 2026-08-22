@@ -1,0 +1,70 @@
+Le Sourire — Installation bêta (Windows)
+========================================
+
+Prérequis
+---------
+1. MariaDB (ou MySQL) installé et démarré sur le PC serveur du cabinet.
+2. Ce dossier « LeSourire » complet (serveur + client + java).
+
+Contenu du pack
+---------------
+  java\                 Runtime Java 21 Windows (à coller : votre dossier java-21)
+  serveur\              Jar serveur + demarrer-serveur.bat + config.bat
+  client\               demarrer-client.bat + modules\ (jars JavaFX inclus)
+  sql\01_creer_bd.sql   Création de la base (une seule fois)
+  Demarrer-LeSourire.bat  Lance serveur puis client
+  sauvegardes\          Dossier prévu pour les dumps (Administration)
+
+Première installation (PC serveur)
+----------------------------------
+1. Copiez tout le dossier LeSourire où vous voulez (ex. C:\LeSourire).
+
+2. Placez votre Java 21 Windows dans LeSourire\java\
+   Le fichier LeSourire\java\bin\java.exe doit exister.
+   (Renommez/copiez votre dossier « java-21 » → « java ».)
+
+3. Créez la base (une fois), en invite de commandes :
+     mysql -u root -p < sql\01_creer_bd.sql
+   (ou via HeidiSQL / MariaDB Client : exécuter le contenu du fichier)
+
+4. Vérifiez serveur\config.bat si besoin
+   (URL, utilisateur admin / mot de passe csa-soft, port 8420).
+
+5. Double-cliquez Demarrer-LeSourire.bat
+   — ou démarrer d’abord serveur\demarrer-serveur.bat
+     puis client\demarrer-client.bat
+
+6. Connexion initiale : admin / admin
+   Changez ce mot de passe dès que possible (Administration → Utilisateurs).
+
+Postes supplémentaires (secrétaire, etc.)
+-----------------------------------------
+- Copiez seulement le dossier client\ + java\ sur le poste
+  (ou le pack entier).
+- Démarrez client\demarrer-client.bat
+- Dans l’écran de connexion, ouvrez « Adresse du serveur »
+  et mettez http://IP-DU-PC-SERVEUR:8420
+
+Pare-feu Windows (PC serveur)
+-----------------------------
+Autorisez le port TCP 8420 en entrée si d’autres postes se connectent.
+
+Mises à jour
+------------
+Remplacez serveur\lesourire-serveur.jar et client\modules\
+par ceux du nouveau pack (conservez config.bat et java\).
+Au démarrage, Flyway applique les nouvelles migrations tout seul.
+
+Sauvegardes
+-----------
+Menu Administration → Sauvegardes (mysqldump).
+Prévoyez aussi une copie régulière du dossier de dumps MariaDB.
+
+Compte démo / dépannage
+-----------------------
+- Serveur injoignable → vérifiez que demarrer-serveur.bat tourne encore.
+- Erreur BD → MariaDB démarré ? Identifiants config.bat ?
+- Triggers / couvertures → le script sql a bien créé l’utilisateur
+  lesourire@localhost (défini dans 01_creer_bd.sql).
+
+Version pack : générée par scripts/preparer_deploiement.sh

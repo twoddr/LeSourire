@@ -103,9 +103,22 @@ initiales et l'historique Flyway (le serveur démarre dessus sans rien rejouer).
 | 6b    | Tableau de bord enrichi + comptabilité / envoi des rappels          |      |
 | 7     | Installeur Windows (jpackage/MSI), service Windows, mises à jour    |      |
 
-## Déploiement prévu chez le client (Windows)
+## Déploiement Windows (bêta)
 
-- **Serveur** : jar exécutable installé comme service Windows (WinSW/NSSM) sur
-  le PC principal, avec MariaDB ; sauvegardes quotidiennes automatiques.
-- **Postes** : installeur MSI généré par `jpackage` (JRE embarqué, aucune
-  installation de Java requise), mises à jour distribuées depuis le serveur.
+Pack « zip + double-clic », sans MSI pour l’instant.
+
+```bash
+# Depuis la machine de build (Linux OK) :
+./scripts/preparer_deploiement.sh
+# ou, si vous avez déjà un JDK 21 Windows sous la main :
+./scripts/preparer_deploiement.sh /chemin/vers/java-21-windows
+```
+
+Résultat : `dist/LeSourire/` contenant serveur, client (JavaFX win), scripts
+`.bat`, SQL de première install et (optionnel) le runtime Java.
+
+Sur le PC du cabinet : MariaDB + coller `java-21` dans `LeSourire\java\` si
+besoin + `sql\01_creer_bd.sql` une fois + `Demarrer-LeSourire.bat`.
+Détails : `deploy/modele/LISEZ-MOI.txt` (copié dans le pack).
+
+Plus tard (phase 7) : MSI via `jpackage`, service Windows, mises à jour auto.

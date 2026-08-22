@@ -16,3 +16,10 @@ target/
 # Fichiers locaux d'exécution
 fichiers/
 sauvegardes/
+
+# Pack de déploiement généré (scripts/preparer_deploiement.sh)
+dist/
+
+# Archives locales
+*.tar.gz
+*.zip
