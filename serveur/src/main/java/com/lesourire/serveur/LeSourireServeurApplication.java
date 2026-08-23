@@ -18,6 +18,11 @@ public class LeSourireServeurApplication {
     public static void main(String[] args) {
         // Toutes les dates sont interprétées dans le fuseau du cabinet
         TimeZone.setDefault(TimeZone.getTimeZone("Africa/Douala"));
-        SpringApplication.run(LeSourireServeurApplication.class, args);
+        try {
+            SpringApplication.run(LeSourireServeurApplication.class, args);
+        } catch (Throwable erreur) {
+            DemarrageEchec.afficher(erreur);
+            System.exit(1);
+        }
     }
 }

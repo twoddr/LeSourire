@@ -37,7 +37,9 @@ set ERR=%ERRORLEVEL%
 if not "%ERR%"=="0" (
   echo.
   echo [ERREUR] Le serveur s'est arrete ^(code %ERR%^).
-  echo Verifiez MariaDB, les identifiants dans config.bat, et le port %LESOURIRE_PORT%.
+  echo Un message detaille a normalement ete affiche dans une fenetre.
+  echo Sinon, verifiez MariaDB, config.bat, et qu'aucune autre instance
+  echo n'occupe deja le port %LESOURIRE_PORT%.
   pause
 )
 exit /b %ERR%
