@@ -15,7 +15,6 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
-import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
@@ -34,6 +33,8 @@ public class PrincipaleVue {
     private final BorderPane racine = new BorderPane();
     private final StackPane contenu = new StackPane();
     private final Map<Module, Node> vuesChargees = new EnumMap<>(Module.class);
+    private final Map<Module, ToggleButton> boutonsNav = new EnumMap<>(Module.class);
+    private final ToggleGroup groupeNav = new ToggleGroup();
     private final Runnable onDeconnexion;
 
     public PrincipaleVue(Runnable onDeconnexion) {
@@ -43,6 +44,18 @@ public class PrincipaleVue {
 
     public Node getRacine() {
         return racine;
+    }
+
+    /** Navigation depuis le tableau de bord (ou ailleurs) vers un module. */
+    public void naviguerVers(Module module) {
+        if (module == null || !module.estAccessiblePar(Session.utilisateur().role())) {
+            return;
+        }
+        ToggleButton bouton = boutonsNav.get(module);
+        if (bouton != null) {
+            bouton.setSelected(true);
+        }
+        afficherModule(module);
     }
 
     private void construire() {
@@ -57,7 +70,6 @@ public class PrincipaleVue {
     private Node construireBarreLaterale() {
         Role role = Session.utilisateur().role();
 
-        // En-tête
         Label badge = new Label("LS");
         badge.getStyleClass().add("badge-logo-petit");
         Label nomApp = new Label("Le Sourire");
@@ -69,15 +81,13 @@ public class PrincipaleVue {
         entete.setAlignment(Pos.CENTER_LEFT);
         entete.setPadding(new Insets(4, 8, 12, 8));
 
-        // Navigation filtrée par rôle
-        ToggleGroup groupe = new ToggleGroup();
         VBox navigation = new VBox(4);
         for (Module module : Module.values()) {
             if (!module.estAccessiblePar(role)) {
                 continue;
             }
             ToggleButton bouton = new ToggleButton(module.getLibelle());
-            bouton.setToggleGroup(groupe);
+            bouton.setToggleGroup(groupeNav);
             bouton.setMaxWidth(Double.MAX_VALUE);
             bouton.setAlignment(Pos.CENTER_LEFT);
             bouton.getStyleClass().add("nav-bouton");
@@ -89,16 +99,15 @@ public class PrincipaleVue {
             if (module == Module.TABLEAU_BORD) {
                 bouton.setSelected(true);
             }
+            boutonsNav.put(module, bouton);
             navigation.getChildren().add(bouton);
         }
-        // Empêche la désélection du module actif par re-clic
-        groupe.selectedToggleProperty().addListener((obs, ancien, nouveau) -> {
+        groupeNav.selectedToggleProperty().addListener((obs, ancien, nouveau) -> {
             if (nouveau == null && ancien != null) {
                 ancien.setSelected(true);
             }
         });
 
-        // Pied : utilisateur connecté + déconnexion
         Label nomUtilisateur = new Label(Session.utilisateur().nomComplet());
         nomUtilisateur.getStyleClass().add("sidebar-utilisateur-nom");
         Label libelleRole = new Label(Session.utilisateur().role().getLibelle()
@@ -135,13 +144,20 @@ public class PrincipaleVue {
     }
 
     private void afficherModule(Module module) {
-        Node vue = vuesChargees.computeIfAbsent(module, this::creerVue);
+        Node vue;
+        if (module == Module.TABLEAU_BORD) {
+            // Toujours rafraîchir les indicateurs
+            vue = creerVue(module);
+            vuesChargees.put(module, vue);
+        } else {
+            vue = vuesChargees.computeIfAbsent(module, this::creerVue);
+        }
         contenu.getChildren().setAll(vue);
     }
 
     private Node creerVue(Module module) {
         return switch (module) {
-            case TABLEAU_BORD -> TableauBordVue.creer();
+            case TABLEAU_BORD -> TableauBordVue.creer(this::naviguerVers);
             case PATIENTS -> new PatientsVue().getRacine();
             case AGENDA -> new AgendaVue().getRacine();
             case FACTURATION -> new FacturationVue().getRacine();

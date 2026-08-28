@@ -6,7 +6,9 @@
 
     <groupId>com.lesourire</groupId>
     <artifactId>lesourire</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <!-- Une seule source de vérité : propriété <revision> ci-dessous.
+         Les modules enfants référencent ${revision} — ne changez que cette valeur. -->
+    <version>${revision}</version>
     <packaging>pom</packaging>
 
     <name>Le Sourire</name>
@@ -19,6 +21,9 @@
     </modules>
 
     <properties>
+        <!-- === Version produit (seul endroit à modifier pour une release) === -->
+        <revision>0.1.0</revision>
+
         <maven.compiler.release>21</maven.compiler.release>
         <!-- Conserve les noms de paramètres à la compilation (requis par Spring MVC) -->
         <maven.compiler.parameters>true</maven.compiler.parameters>
@@ -31,6 +36,9 @@
         <ikonli.version>12.4.0</ikonli.version>
         <!-- Aligné sur jackson-bom de Spring Boot 3.5.3 (évite databind 2.22 + annotations 2.19) -->
         <jackson.version>2.19.1</jackson.version>
+        <!-- Factures PDF : HTML/CSS (Thymeleaf) → OpenHTMLtoPDF -->
+        <openhtmltopdf.version>1.0.10</openhtmltopdf.version>
+        <thymeleaf.version>3.1.3.RELEASE</thymeleaf.version>
     </properties>
 
     <dependencyManagement>
@@ -49,4 +57,35 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <build>
+        <plugins>
+            <!-- Résout ${revision} dans les POM installés (Maven CI Friendly Versions) -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.6.0</version>
+                <configuration>
+                    <updatePomFile>true</updatePomFile>
+                    <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

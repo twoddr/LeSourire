@@ -1,5 +1,6 @@
 package com.lesourire.client.service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import com.lesourire.commun.Facturation.StatutFacture;
@@ -12,7 +13,8 @@ import com.lesourire.commun.dto.ValeurLettreCleDTO;
 /** Accès aux factures, paiements et au tarifaire nécessaire à l'encodage. */
 public interface ServiceFacturation {
 
-    List<FactureDTO> rechercher(String recherche, StatutFacture statut) throws Exception;
+    List<FactureDTO> rechercher(String recherche, StatutFacture statut,
+            LocalDate debut, LocalDate fin) throws Exception;
 
     FactureDTO obtenir(Long id) throws Exception;
 

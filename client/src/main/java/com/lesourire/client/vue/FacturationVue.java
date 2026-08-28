@@ -1,5 +1,6 @@
 package com.lesourire.client.vue;
 
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.function.Function;
 
@@ -11,6 +12,7 @@ import com.lesourire.client.coeur.Async;
 import com.lesourire.client.coeur.Dialogues;
 import com.lesourire.client.coeur.Montants;
 import com.lesourire.client.coeur.Session;
+import com.lesourire.client.impression.ImpressionFacture;
 import com.lesourire.client.service.ServiceFacturation;
 import com.lesourire.client.service.ServiceFacturationApi;
 import com.lesourire.client.service.ServiceFacturationDemo;
@@ -30,6 +32,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
@@ -57,6 +60,8 @@ public class FacturationVue {
 
     private final TextField champRecherche = new TextField();
     private final ComboBox<StatutFacture> champStatut = new ComboBox<>();
+    private final DatePicker champDebut = new DatePicker(LocalDate.now().withDayOfMonth(1));
+    private final DatePicker champFin = new DatePicker(LocalDate.now());
     private final TableView<FactureDTO> tableau = new TableView<>();
     private final Label labelStatut = new Label();
 
@@ -104,6 +109,12 @@ public class FacturationVue {
         annuler.setTooltip(new Tooltip("Annuler la facture sélectionnée (si aucun paiement)"));
         annuler.setOnAction(e -> annulerSelection());
 
+        Button imprimer = new Button("Aperçu PDF");
+        imprimer.setGraphic(new FontIcon(Material2MZ.PRINT));
+        imprimer.setTooltip(new Tooltip(
+                "Ouvrir le PDF de la facture (aperçu et impression via le lecteur système)"));
+        imprimer.setOnAction(e -> imprimerSelection());
+
         Button nouvelle = new Button("Nouvelle facture");
         nouvelle.setGraphic(new FontIcon(Material2AL.ADD));
         nouvelle.getStyleClass().add("bouton-principal");
@@ -111,7 +122,7 @@ public class FacturationVue {
 
         Region espace = new Region();
         HBox.setHgrow(espace, Priority.ALWAYS);
-        HBox actions = new HBox(10, espace, actualiser, annuler, emettre, encaisser, nouvelle);
+        HBox actions = new HBox(10, espace, actualiser, annuler, emettre, encaisser, imprimer, nouvelle);
         actions.setAlignment(Pos.CENTER_RIGHT);
 
         champRecherche.setPromptText("Rechercher par numéro, patient ou dossier…");
@@ -139,7 +150,37 @@ public class FacturationVue {
         champStatut.getSelectionModel().selectFirst();
         champStatut.setOnAction(e -> charger());
 
-        HBox filtres = new HBox(10, champRecherche, champStatut);
+        champDebut.setPromptText("Du");
+        champDebut.setPrefWidth(140);
+        champDebut.setOnAction(e -> charger());
+        champDebut.valueProperty().addListener((o, a, b) -> charger());
+
+        champFin.setPromptText("Au");
+        champFin.setPrefWidth(140);
+        champFin.setOnAction(e -> charger());
+        champFin.valueProperty().addListener((o, a, b) -> charger());
+
+        Button ceMois = new Button("Ce mois");
+        ceMois.setTooltip(new Tooltip("Période : du 1er du mois à aujourd'hui"));
+        ceMois.setOnAction(e -> {
+            champDebut.setValue(LocalDate.now().withDayOfMonth(1));
+            champFin.setValue(LocalDate.now());
+        });
+
+        Button tout = new Button("Tout");
+        tout.setTooltip(new Tooltip("Sans filtre de période"));
+        tout.setOnAction(e -> {
+            champDebut.setValue(null);
+            champFin.setValue(null);
+        });
+
+        HBox filtres = new HBox(10,
+                champRecherche,
+                new Label("Du"), champDebut,
+                new Label("au"), champFin,
+                ceMois, tout,
+                champStatut);
+        filtres.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(champRecherche, Priority.ALWAYS);
 
         construireTableau();
@@ -219,7 +260,13 @@ public class FacturationVue {
     private void charger() {
         String q = champRecherche.getText();
         StatutFacture statut = champStatut.getSelectionModel().getSelectedItem();
-        Async.executer(() -> service.rechercher(q, statut), factures -> {
+        LocalDate debut = champDebut.getValue();
+        LocalDate fin = champFin.getValue();
+        if (debut != null && fin != null && fin.isBefore(debut)) {
+            labelStatut.setText("La date de fin doit être ≥ date de début.");
+            return;
+        }
+        Async.executer(() -> service.rechercher(q, statut, debut, fin), factures -> {
             tableau.getItems().setAll(factures);
             labelStatut.setText(factures.size() + " facture(s)");
         }, e -> afficherErreur("Impossible de charger les factures", e));
@@ -295,6 +342,16 @@ public class FacturationVue {
                             encaissee -> charger(),
                             e -> afficherErreur("Impossible d'encaisser le paiement", e)));
         }, e -> afficherErreur("Impossible d'ouvrir la facture", e));
+    }
+
+    private void imprimerSelection() {
+        FactureDTO selection = exigerSelection();
+        if (selection == null) {
+            return;
+        }
+        Async.executer(() -> service.obtenir(selection.id),
+                complete -> ImpressionFacture.imprimer(complete, racine.getScene().getWindow()),
+                e -> afficherErreur("Impossible de préparer l'impression", e));
     }
 
     private FactureDTO exigerSelection() {

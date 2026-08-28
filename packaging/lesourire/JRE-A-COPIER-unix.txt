@@ -1,0 +1,15 @@
+Copiez ici une JRE 21, selon l'ordinateur :
+
+  jre-linux/     → bin/java
+  jre-mac/       → Contents/Home/bin/java  (bundle macOS)
+                   ou bin/java
+
+Les scripts détectent Linux ou macOS tout seuls.
+
+Sources possibles :
+- une JRE 21 déjà utilisée pour un autre logiciel du cabinet
+- https://adoptium.net/ (Temurin 21, JRE)
+  · Linux x64
+  · macOS x64 ou aarch64 (Apple Silicon)
+
+Ne versionnez pas ces dossiers dans Git (trop volumineux).

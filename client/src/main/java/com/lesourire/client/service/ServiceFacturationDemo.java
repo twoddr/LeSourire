@@ -10,7 +10,6 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.lesourire.client.coeur.ApiClient.ApiException;
-import com.lesourire.commun.Facturation.ModePaiement;
 import com.lesourire.commun.Facturation.Payeur;
 import com.lesourire.commun.Facturation.StatutFacture;
 import com.lesourire.commun.Role;
@@ -80,10 +79,13 @@ public class ServiceFacturationDemo implements ServiceFacturation {
     }
 
     @Override
-    public List<FactureDTO> rechercher(String recherche, StatutFacture statut) {
+    public List<FactureDTO> rechercher(String recherche, StatutFacture statut,
+            LocalDate debut, LocalDate fin) {
         String q = recherche == null ? "" : recherche.trim().toLowerCase(Locale.FRENCH);
         return factures.stream()
                 .filter(f -> statut == null || f.statut == statut)
+                .filter(f -> debut == null || f.dateFacture == null || !f.dateFacture.isBefore(debut))
+                .filter(f -> fin == null || f.dateFacture == null || !f.dateFacture.isAfter(fin))
                 .filter(f -> q.isEmpty()
                         || f.numero.toLowerCase(Locale.FRENCH).contains(q)
                         || (f.patientNom != null

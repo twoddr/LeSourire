@@ -31,7 +31,12 @@ Le serveur est le seul composant qui parle à la base de données. Il tourne en
 permanence, ce qui permet d'envoyer les rappels (J-2 avant rendez-vous,
 revisites post-intervention) même si aucun poste client n'est allumé.
 
-## Prérequis (développement)
+## Version
+
+Une seule valeur à modifier pour une release : la propriété `<revision>` dans le
+`pom.xml` racine (actuellement `0.1.0`). Les modules `commun` / `serveur` /
+`client` référencent `${revision}` ; le titre de la fenêtre client affiche cette
+version.
 
 - JDK 21
 - Maven 3.9+
@@ -103,22 +108,25 @@ initiales et l'historique Flyway (le serveur démarre dessus sans rien rejouer).
 | 6b    | Tableau de bord enrichi + comptabilité / envoi des rappels          |      |
 | 7     | Installeur Windows (jpackage/MSI), service Windows, mises à jour    |      |
 
-## Déploiement Windows (bêta)
+## Déploiement (bêta, style Labos)
 
-Pack « zip + double-clic », sans MSI pour l’instant.
+Deux paquets « zip + double-clic / scripts », sans MSI pour l’instant.
 
 ```bash
 # Depuis la machine de build (Linux OK) :
-./scripts/preparer_deploiement.sh
-# ou, si vous avez déjà un JDK 21 Windows sous la main :
-./scripts/preparer_deploiement.sh /chemin/vers/java-21-windows
+./scripts/assembler-executables.sh
 ```
 
-Résultat : `dist/LeSourire/` contenant serveur, client (JavaFX win), scripts
-`.bat`, SQL de première install et (optionnel) le runtime Java.
+Résultat :
+- `out/executables/lesourire-windows/` — `.bat`, JavaFX Windows, emplacement `jre-windows/`
+- `out/executables/lesourire-mac-linux/` — `.sh`, JavaFX Linux/macOS, `jre-linux/` + `jre-mac/`
 
-Sur le PC du cabinet : MariaDB + coller `java-21` dans `LeSourire\java\` si
-besoin + `sql\01_creer_bd.sql` une fois + `Demarrer-LeSourire.bat`.
-Détails : `deploy/modele/LISEZ-MOI.txt` (copié dans le pack).
+Sur le PC du cabinet :
+1. Copier une JRE 21 dans le dossier `jre-*` correspondant (voir `JRE-A-COPIER.txt`)
+2. Première install : exécuter `sql/01_creer_bd.sql`
+3. Vérifier `serveur/lesourire-serveur.conf.*` (BD, port 8420)
+4. `1-Demarrer-Serveur` puis `2-Demarrer-LeSourire` — ou `ToutDemarrer`
+
+Connexion initiale : `admin` / `admin`. Détails dans le `README.txt` de chaque paquet.
 
 Plus tard (phase 7) : MSI via `jpackage`, service Windows, mises à jour auto.

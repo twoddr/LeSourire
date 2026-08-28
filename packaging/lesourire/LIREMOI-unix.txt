@@ -1,0 +1,56 @@
+Le Sourire — installation rapide (Linux / macOS)
+================================================
+
+Prérequis
+---------
+- MariaDB (ou MySQL) installé et démarré sur le PC serveur du cabinet.
+- Première install : exécutez une fois sql/01_creer_bd.sql
+  (mysql -u root -p < sql/01_creer_bd.sql).
+- Ce dossier contient une JRE Java 21 :
+  - Linux : jre-linux/
+  - macOS : jre-mac/
+  Les scripts détectent l'OS tout seuls.
+  Si le dossier jre-* est vide, copiez-y une JRE 21 (voir JRE-A-COPIER.txt).
+
+Premier démarrage (PC principal / serveur)
+------------------------------------------
+1. Ouvrez serveur/lesourire-serveur.conf.sh et vérifiez :
+   - URL MariaDB (défaut jdbc:mariadb://localhost:3306/lesourire)
+   - utilisateur / mot de passe (défaut admin / csa-soft)
+   - port Le Sourire (défaut 8420)
+
+2. Dans un terminal, depuis ce dossier :
+     ./1-Demarrer-Serveur.sh
+   Laissez le terminal ouvert.
+
+3. Dans un autre terminal :
+     ./2-Demarrer-LeSourire.sh
+   Connexion : admin / admin
+   Adresse serveur = http://localhost:8420
+   (ou http://ADRESSE-DU-PC:8420 depuis un autre poste).
+
+Un seul PC
+----------
+Vous pouvez utiliser ./ToutDemarrer.sh :
+cela lance le serveur puis le client.
+
+Postes clients supplémentaires
+------------------------------
+- Copiez seulement le dossier client + jre-linux (ou jre-mac)
+  + 2-Demarrer-LeSourire.sh (ou tout le dossier lesourire-mac-linux).
+- Dans l’écran de connexion, ouvrez « Adresse du serveur » :
+  http://192.168.1.10:8420
+
+Mise à jour
+-----------
+Remplacez les fichiers .jar (serveur et client/lib, client/lesourire-client.jar).
+Ne touchez pas à jre-* ni à la configuration MariaDB sauf besoin.
+Flyway applique les migrations au démarrage du serveur.
+
+Dépannage
+---------
+- « Le serveur n'est pas lancé » : vérifier que
+  ./1-Demarrer-Serveur.sh tourne et que le pare-feu autorise le port 8420.
+- « Java Runtime introuvable » : dossier jre-linux ou jre-mac manquant.
+- Erreur BD : MariaDB démarré ? Identifiants dans lesourire-serveur.conf.sh ?
+  Script sql/01_creer_bd.sql exécuté (créé aussi l’utilisateur lesourire@localhost) ?

@@ -1,8 +1,10 @@
 package com.lesourire.serveur.api;
 
 import java.security.Principal;
+import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,8 +33,12 @@ public class FactureController {
     @GetMapping
     public List<FactureDTO> rechercher(
             @RequestParam(name = "recherche", required = false) String recherche,
-            @RequestParam(name = "statut", required = false) StatutFacture statut) {
-        return factureService.rechercher(recherche, statut);
+            @RequestParam(name = "statut", required = false) StatutFacture statut,
+            @RequestParam(name = "debut", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate debut,
+            @RequestParam(name = "fin", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fin) {
+        return factureService.rechercher(recherche, statut, debut, fin);
     }
 
     @GetMapping("/{id}")

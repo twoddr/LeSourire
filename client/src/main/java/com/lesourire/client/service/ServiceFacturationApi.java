@@ -1,5 +1,6 @@
 package com.lesourire.client.service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -21,10 +22,20 @@ public class ServiceFacturationApi implements ServiceFacturation {
     }
 
     @Override
-    public List<FactureDTO> rechercher(String recherche, StatutFacture statut) throws Exception {
-        String chemin = "/api/factures?recherche=" + ApiClient.encoder(recherche)
-                + (statut == null ? "" : "&statut=" + statut.name());
-        return api.get(chemin, new TypeReference<List<FactureDTO>>() {
+    public List<FactureDTO> rechercher(String recherche, StatutFacture statut,
+            LocalDate debut, LocalDate fin) throws Exception {
+        StringBuilder chemin = new StringBuilder("/api/factures?recherche=")
+                .append(ApiClient.encoder(recherche));
+        if (statut != null) {
+            chemin.append("&statut=").append(statut.name());
+        }
+        if (debut != null) {
+            chemin.append("&debut=").append(debut);
+        }
+        if (fin != null) {
+            chemin.append("&fin=").append(fin);
+        }
+        return api.get(chemin.toString(), new TypeReference<List<FactureDTO>>() {
         });
     }
 

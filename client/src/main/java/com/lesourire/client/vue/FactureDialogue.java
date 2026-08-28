@@ -8,6 +8,7 @@ import java.util.function.Function;
 
 import com.lesourire.client.coeur.Async;
 import com.lesourire.client.coeur.Montants;
+import com.lesourire.client.impression.ImpressionFacture;
 import com.lesourire.client.service.ServiceFacturation;
 import com.lesourire.client.service.ServicePatients;
 import com.lesourire.commun.Facturation.StatutFacture;
@@ -23,6 +24,7 @@ import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
@@ -96,7 +98,13 @@ public class FactureDialogue extends Dialog<FactureDTO> {
         getDialogPane().setContent(construireContenu());
         getDialogPane().setPrefSize(860, 620);
         if (lectureSeule) {
-            getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+            ButtonType imprimer = new ButtonType("Aperçu PDF", ButtonBar.ButtonData.LEFT);
+            getDialogPane().getButtonTypes().addAll(imprimer, ButtonType.CLOSE);
+            Button boutonImprimer = (Button) getDialogPane().lookupButton(imprimer);
+            boutonImprimer.addEventFilter(ActionEvent.ACTION, e -> {
+                e.consume();
+                ImpressionFacture.imprimer(facture, getDialogPane().getScene().getWindow());
+            });
         } else {
             getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
             Button boutonOk = (Button) getDialogPane().lookupButton(ButtonType.OK);

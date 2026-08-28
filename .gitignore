@@ -1,5 +1,6 @@
 # Maven
 target/
+.flattened-pom.xml
 
 # IDE
 .idea/
@@ -17,9 +18,6 @@ target/
 fichiers/
 sauvegardes/
 
-# Pack de déploiement généré (scripts/preparer_deploiement.sh)
+# Packs de déploiement générés
 dist/
-
-# Archives locales
-*.tar.gz
-*.zip
+out/

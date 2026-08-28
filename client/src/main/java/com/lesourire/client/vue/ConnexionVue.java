@@ -101,6 +101,7 @@ public class ConnexionVue {
                 lienDemo);
         carte.getStyleClass().add("carte-connexion");
         carte.setMaxWidth(400);
+        carte.setMaxHeight(600);
         carte.setPadding(new Insets(36));
         carte.setAlignment(Pos.CENTER);
 

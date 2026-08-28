@@ -1,0 +1,9 @@
+Copiez ici une JRE 21 Windows :
+
+  jre-windows\   → bin\javaw.exe, bin\java.exe, …
+
+Sources possibles :
+- une JRE 21 déjà utilisée pour un autre logiciel du cabinet
+- https://adoptium.net/ (Temurin 21, JRE, Windows x64)
+
+Ne versionnez pas ce dossier dans Git (trop volumineux).

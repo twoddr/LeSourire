@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="'Facture ' + ${numero}">Facture</title>
+    <style>
+        /* Mise en page A4 — modifier ici pour peaufiner le PDF.
+           OpenHTMLtoPDF : CSS classique (tables, float), pas de flex/grid modernes. */
+        @page {
+            size: A4;
+            margin: 2.2cm 1.4cm 1.8cm 1.4cm;
+            @top-center {
+                content: element(entete-courant);
+            }
+            @bottom-center {
+                content: element(pied-page);
+            }
+        }
+        @page :first {
+            margin-top: 1cm;
+            @top-center {
+                content: none;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'DejaVu Sans', sans-serif;
+            font-size: 10pt;
+            color: #1a1a1a;
+            line-height: 1.35;
+        }
+
+        .entete-courant {
+            position: running(entete-courant);
+            font-size: 8.5pt;
+            color: #444;
+            border-bottom: 0.5pt solid #c5c5c5;
+            padding-bottom: 4pt;
+            width: 100%;
+        }
+        .entete-courant .logo-mini {
+            height: 18pt;
+            vertical-align: middle;
+            margin-right: 6pt;
+        }
+        .pied-page {
+            position: running(pied-page);
+            font-size: 8pt;
+            color: #666;
+            border-top: 0.5pt solid #c5c5c5;
+            padding-top: 4pt;
+            text-align: center;
+            width: 100%;
+        }
+        .pied-page::after {
+            content: " · p. " counter(page) " / " counter(pages);
+        }
+
+        .banniere {
+            width: 100%;
+            max-height: 72pt;
+            display: block;
+            margin-bottom: 10pt;
+        }
+
+        .titre-bloc {
+            margin: 6pt 0 12pt 0;
+        }
+        .titre-bloc h1 {
+            font-size: 16pt;
+            margin: 0 0 4pt 0;
+            font-weight: bold;
+            letter-spacing: 0.5pt;
+        }
+        .meta {
+            font-size: 10pt;
+        }
+        .meta strong {
+            font-weight: bold;
+        }
+        .patient {
+            margin: 10pt 0 14pt 0;
+            padding: 8pt 10pt;
+            background: #f4f7f6;
+            border-left: 3pt solid #2a6f6a;
+        }
+
+        table.lignes {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12pt;
+        }
+        table.lignes th {
+            background: #2a6f6a;
+            color: #fff;
+            font-weight: bold;
+            font-size: 9pt;
+            padding: 5pt 4pt;
+            text-align: left;
+            border: 0.4pt solid #2a6f6a;
+        }
+        table.lignes th.droite,
+        table.lignes td.droite {
+            text-align: right;
+        }
+        table.lignes th.centre,
+        table.lignes td.centre {
+            text-align: center;
+        }
+        table.lignes td {
+            padding: 4pt;
+            border: 0.4pt solid #d0d0d0;
+            vertical-align: top;
+        }
+        table.lignes tr:nth-child(even) td {
+            background: #fafafa;
+        }
+        .dents {
+            color: #555;
+            font-size: 8.5pt;
+        }
+
+        table.totaux {
+            width: 55%;
+            margin-left: auto;
+            border-collapse: collapse;
+            margin-bottom: 14pt;
+        }
+        table.totaux td {
+            padding: 3pt 6pt;
+            border: none;
+        }
+        table.totaux td.libelle {
+            text-align: right;
+            color: #333;
+        }
+        table.totaux td.valeur {
+            text-align: right;
+            white-space: nowrap;
+            width: 38%;
+        }
+        table.totaux tr.net td {
+            font-weight: bold;
+            font-size: 11pt;
+            border-top: 0.8pt solid #2a6f6a;
+            padding-top: 6pt;
+        }
+
+        h2 {
+            font-size: 11pt;
+            margin: 12pt 0 6pt 0;
+            color: #2a6f6a;
+            border-bottom: 0.5pt solid #c5e0dd;
+            padding-bottom: 2pt;
+        }
+        table.paiements {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9pt;
+        }
+        table.paiements th {
+            text-align: left;
+            background: #e8f0ef;
+            padding: 4pt;
+            border: 0.4pt solid #c5d9d6;
+        }
+        table.paiements td {
+            padding: 3pt 4pt;
+            border: 0.4pt solid #e0e0e0;
+        }
+        .vide {
+            color: #777;
+            font-style: italic;
+            font-size: 9pt;
+        }
+        .notes {
+            margin-top: 12pt;
+            font-size: 9pt;
+            color: #444;
+        }
+    </style>
+</head>
+<body>
+
+<div class="entete-courant">
+    <img class="logo-mini" th:src="${logoUri}" alt=""/>
+    Cabinet Dentaire Le Sourire
+    — <span th:text="${numero}">FA-…</span>
+</div>
+
+<div class="pied-page">Cabinet Dentaire Le Sourire · Douala</div>
+
+<img class="banniere" th:src="${banniereUri}" alt="Le Sourire"/>
+
+<div class="titre-bloc">
+    <h1>FACTURE</h1>
+    <div class="meta">
+        <strong th:text="${numero}">FA-…</strong>
+        — <span th:text="${statut}">Émise</span><br/>
+        Date : <span th:text="${dateFacture}">—</span>
+        <span th:if="${dateEcheance != null}">
+            · Échéance : <span th:text="${dateEcheance}">—</span>
+        </span>
+    </div>
+</div>
+
+<div class="patient">
+    <strong>Patient :</strong>
+    <span th:text="${patientNom}">—</span>
+    <span th:if="${patientDossier != null}">
+        (<span th:text="${patientDossier}">—</span>)
+    </span>
+</div>
+
+<table class="lignes">
+    <thead>
+    <tr>
+        <th>Désignation</th>
+        <th class="centre" style="width: 12%;">Dents</th>
+        <th class="centre" style="width: 8%;">Qté</th>
+        <th class="droite" style="width: 14%;">P.U.</th>
+        <th class="droite" style="width: 16%;">Montant</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="l : ${lignes}">
+        <td th:text="${l.designation}">—</td>
+        <td class="centre dents" th:text="${l.dents}">—</td>
+        <td class="centre" th:text="${l.quantite}">1</td>
+        <td class="droite" th:text="${l.prixUnitaire}">—</td>
+        <td class="droite" th:text="${l.montant}">—</td>
+    </tr>
+    </tbody>
+</table>
+
+<table class="totaux">
+    <tr>
+        <td class="libelle">Montant brut</td>
+        <td class="valeur" th:text="${montantBrut}">—</td>
+    </tr>
+    <tr>
+        <td class="libelle">Remise</td>
+        <td class="valeur" th:text="${remise}">—</td>
+    </tr>
+    <tr class="net">
+        <td class="libelle">Net à payer</td>
+        <td class="valeur" th:text="${montantNet}">—</td>
+    </tr>
+    <tr>
+        <td class="libelle">Quote patient<span th:if="${restePatient != null}" th:text="${' (' + restePatient + ')'}"></span></td>
+        <td class="valeur" th:text="${quotePatient}">—</td>
+    </tr>
+    <tr th:if="${assureurNom != null}">
+        <td class="libelle">Quote assureur — <span th:text="${assureurNom}">—</span></td>
+        <td class="valeur" th:text="${quoteAssureur}">—</td>
+    </tr>
+    <tr th:unless="${assureurNom != null}">
+        <td class="libelle">Quote assureur</td>
+        <td class="valeur" th:text="${quoteAssureur}">—</td>
+    </tr>
+    <tr th:if="${societeNom != null}">
+        <td class="libelle">Quote société — <span th:text="${societeNom}">—</span></td>
+        <td class="valeur" th:text="${quoteSociete}">—</td>
+    </tr>
+    <tr th:unless="${societeNom != null}">
+        <td class="libelle">Quote société</td>
+        <td class="valeur" th:text="${quoteSociete}">—</td>
+    </tr>
+</table>
+
+<h2>Paiements</h2>
+<p th:if="${#lists.isEmpty(paiements)}" class="vide">Aucun paiement enregistré.</p>
+<table th:unless="${#lists.isEmpty(paiements)}" class="paiements">
+    <thead>
+    <tr>
+        <th>Date</th>
+        <th>Payeur</th>
+        <th>Mode</th>
+        <th style="text-align: right;">Montant</th>
+        <th>Référence</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="p : ${paiements}">
+        <td th:text="${p.date}">—</td>
+        <td th:text="${p.payeur}">—</td>
+        <td th:text="${p.mode}">—</td>
+        <td style="text-align: right;" th:text="${p.montant}">—</td>
+        <td th:text="${p.reference}">—</td>
+    </tr>
+    </tbody>
+</table>
+
+<div th:if="${notes != null}" class="notes">
+    <strong>Notes :</strong> <span th:text="${notes}">—</span>
+</div>
+
+</body>
+</html>

@@ -1,5 +1,6 @@
 package com.lesourire.serveur.repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,6 +22,8 @@ public interface FactureRepository extends JpaRepository<Facture, Long> {
             LEFT JOIN FETCH f.assureur
             LEFT JOIN FETCH f.societe
             WHERE (:statut IS NULL OR f.statut = :statut)
+              AND (:debut IS NULL OR f.dateFacture >= :debut)
+              AND (:fin IS NULL OR f.dateFacture <= :fin)
               AND (:q = ''
                    OR LOWER(f.numero) LIKE CONCAT('%', :q, '%')
                    OR LOWER(p.nom) LIKE CONCAT('%', :q, '%')
@@ -28,7 +31,10 @@ public interface FactureRepository extends JpaRepository<Facture, Long> {
                    OR LOWER(p.numeroDossier) LIKE CONCAT('%', :q, '%'))
             ORDER BY f.dateFacture DESC, f.id DESC
             """)
-    List<Facture> rechercher(@Param("q") String q, @Param("statut") StatutFacture statut);
+    List<Facture> rechercher(@Param("q") String q,
+            @Param("statut") StatutFacture statut,
+            @Param("debut") LocalDate debut,
+            @Param("fin") LocalDate fin);
 
     List<Facture> findByPatientIdOrderByDateFactureDesc(Long patientId);
 

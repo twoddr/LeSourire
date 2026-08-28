@@ -210,6 +210,11 @@
     -fx-effect: dropshadow(gaussian, rgba(15, 46, 56, 0.10), 12, 0.1, 0, 3);
 }
 
+.carte-stat-cliquable:hover {
+    -fx-background-color: #f0f9fb;
+    -fx-effect: dropshadow(gaussian, rgba(14, 116, 144, 0.22), 14, 0.15, 0, 4);
+}
+
 .carte-stat-icone {
     -fx-icon-color: -ls-accent;
     -fx-icon-size: 26;

@@ -94,9 +94,14 @@ public class FactureService {
     // ------------------------------------------------------------- lecture
 
     @Transactional(readOnly = true)
-    public List<FactureDTO> rechercher(String recherche, StatutFacture statut) {
+    public List<FactureDTO> rechercher(String recherche, StatutFacture statut,
+            LocalDate debut, LocalDate fin) {
         String q = recherche == null ? "" : recherche.trim().toLowerCase(Locale.FRENCH);
-        return factureRepository.rechercher(q, statut).stream()
+        if (debut != null && fin != null && fin.isBefore(debut)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La date de fin doit être postérieure ou égale à la date de début.");
+        }
+        return factureRepository.rechercher(q, statut, debut, fin).stream()
                 .map(Facture::versDTOResume)
                 .toList();
     }
