@@ -2,6 +2,7 @@ package com.lesourire.serveur.service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
@@ -73,9 +74,14 @@ public class RdvService {
 
     @Transactional(readOnly = true)
     public List<UtilisateurDTO> praticiens() {
+        // Nom/prénom chiffrés en base : le tri se fait en mémoire.
         return utilisateurRepository
-                .findByRoleAndActifTrueOrderByNomAscPrenomAsc(Role.DENTISTE)
+                .findByRoleAndActifTrue(Role.DENTISTE)
                 .stream()
+                .sorted(Comparator.comparing(Utilisateur::getNom,
+                                Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER))
+                        .thenComparing(Utilisateur::getPrenom,
+                                Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER)))
                 .map(Utilisateur::versDTO)
                 .toList();
     }

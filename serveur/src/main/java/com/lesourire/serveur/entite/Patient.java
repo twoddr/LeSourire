@@ -4,8 +4,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import com.lesourire.commun.dto.PatientDTO;
+import com.lesourire.serveur.crypto.ChiffreurTexte;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -26,10 +28,13 @@ public class Patient {
     @Column(name = "numero_dossier", nullable = false, unique = true, length = 20)
     private String numeroDossier;
 
-    @Column(nullable = false, length = 150)
+    // -- Données identifiantes et médicales : chiffrées en base (AES-256-GCM) --
+    @Convert(converter = ChiffreurTexte.class)
+    @Column(nullable = false, length = 512)
     private String nom;
 
-    @Column(length = 150)
+    @Convert(converter = ChiffreurTexte.class)
+    @Column(length = 512)
     private String prenom;
 
     @Column(name = "date_naissance")
@@ -38,37 +43,51 @@ public class Patient {
     @Column(columnDefinition = "CHAR(1)")
     private String sexe;
 
-    @Column(length = 30)
+    @Convert(converter = ChiffreurTexte.class)
+    @Column(length = 255)
     private String telephone;
 
-    @Column(name = "telephone_whatsapp", length = 30)
+    @Convert(converter = ChiffreurTexte.class)
+    @Column(name = "telephone_whatsapp", length = 255)
     private String telephoneWhatsapp;
 
+    @Convert(converter = ChiffreurTexte.class)
+    @Column(length = 512)
     private String email;
 
+    @Convert(converter = ChiffreurTexte.class)
+    @Column(length = 512)
     private String adresse;
 
-    @Column(length = 150)
+    @Convert(converter = ChiffreurTexte.class)
+    @Column(length = 512)
     private String quartier;
 
-    @Column(length = 150)
+    @Convert(converter = ChiffreurTexte.class)
+    @Column(length = 512)
     private String ville;
 
-    @Column(length = 150)
+    @Convert(converter = ChiffreurTexte.class)
+    @Column(length = 512)
     private String profession;
 
-    @Column(name = "personne_urgence_nom", length = 150)
+    @Convert(converter = ChiffreurTexte.class)
+    @Column(name = "personne_urgence_nom", length = 512)
     private String personneUrgenceNom;
 
-    @Column(name = "personne_urgence_tel", length = 30)
+    @Convert(converter = ChiffreurTexte.class)
+    @Column(name = "personne_urgence_tel", length = 255)
     private String personneUrgenceTel;
 
+    @Convert(converter = ChiffreurTexte.class)
     @Column(columnDefinition = "TEXT")
     private String antecedents;
 
+    @Convert(converter = ChiffreurTexte.class)
     @Column(columnDefinition = "TEXT")
     private String allergies;
 
+    @Convert(converter = ChiffreurTexte.class)
     @Column(columnDefinition = "TEXT")
     private String notes;
 

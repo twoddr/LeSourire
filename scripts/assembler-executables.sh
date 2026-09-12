@@ -7,6 +7,80 @@
 # des dossiers target/ du reactor courant — jamais d'un vieux ~/.m2.
 set -euo pipefail
 
+# ---------------------------------------------------------------------------
+# Notifications bureau (facultatives) : zenity (progression) puis notify-send.
+# En SSH / sans affichage graphique, on se contente de la sortie terminal.
+# ---------------------------------------------------------------------------
+NOTIF_MODE=0
+if [ -n "${DISPLAY:-}" ]; then
+    if command -v zenity >/dev/null 2>&1; then
+        NOTIF_MODE=2
+    elif command -v notify-send >/dev/null 2>&1; then
+        NOTIF_MODE=1
+    fi
+fi
+PROGRESS_PID=""
+
+notifier_debut() {
+    case "${NOTIF_MODE}" in
+        2)
+            zenity --progress --pulsate --no-cancel \
+                --title="Le Sourire" \
+                --text="Création des exécutables en cours…" \
+                >/dev/null 2>&1 &
+            PROGRESS_PID=$!
+            ;;
+        1)
+            notify-send -i system-run "Le Sourire" \
+                "Création des exécutables en cours…" >/dev/null 2>&1 || true
+            ;;
+    esac
+}
+
+notifier_succes() {
+    [ -n "${PROGRESS_PID}" ] && kill "${PROGRESS_PID}" 2>/dev/null || true
+    PROGRESS_PID=""
+    case "${NOTIF_MODE}" in
+        2)
+            zenity --info --title="Le Sourire" \
+                --text="Exécutables créés avec succès.\n\nLes dossiers lesourire-windows et lesourire-mac-linux sont prêts." \
+                >/dev/null 2>&1 || true
+            ;;
+        1)
+            notify-send -i dialog-information "Le Sourire" \
+                "Exécutables créés avec succès." >/dev/null 2>&1 || true
+            ;;
+    esac
+}
+
+notifier_echec() {
+    [ -n "${PROGRESS_PID}" ] && kill "${PROGRESS_PID}" 2>/dev/null || true
+    PROGRESS_PID=""
+    case "${NOTIF_MODE}" in
+        2)
+            zenity --error --title="Le Sourire" \
+                --text="La création des exécutables a échoué.\nConsultez le terminal pour le détail." \
+                >/dev/null 2>&1 || true
+            ;;
+        1)
+            notify-send -u critical -i dialog-error "Le Sourire" \
+                "La création des exécutables a échoué." >/dev/null 2>&1 || true
+            ;;
+    esac
+}
+
+sur_exit() {
+    local code=$?
+    [ -n "${PROGRESS_PID}" ] && kill "${PROGRESS_PID}" 2>/dev/null || true
+    PROGRESS_PID=""
+    if [ "${code}" -ne 0 ]; then
+        notifier_echec
+    else
+        notifier_succes
+    fi
+}
+trap sur_exit EXIT
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT_WIN="${ROOT}/out/executables/lesourire-windows"
 OUT_UNIX="${ROOT}/out/executables/lesourire-mac-linux"
@@ -33,6 +107,7 @@ if [ -z "${JFX_VERSION}" ]; then
 fi
 
 echo "==> Compilation Maven propre (clean install)"
+notifier_debut
 (cd "${ROOT}" && mvn -q clean install -DskipTests)
 
 for f in "${COMMUN_JAR}" "${CLIENT_JAR}" "${SERVEUR_JAR}"; do
@@ -143,6 +218,7 @@ cp -f "${PACKAGING}/1-Demarrer-Serveur.bat" "${OUT_WIN}/"
 cp -f "${PACKAGING}/2-Demarrer-LeSourire.bat" "${OUT_WIN}/"
 cp -f "${PACKAGING}/2-Demarrer-LeSourire-debug.bat" "${OUT_WIN}/"
 cp -f "${PACKAGING}/ToutDemarrer.bat" "${OUT_WIN}/"
+cp -f "${PACKAGING}/Arreter-Serveur.bat" "${OUT_WIN}/"
 rm -f "${OUT_WIN}"/*.sh "${OUT_WIN}/serveur/"*.sh
 rm -rf "${OUT_WIN}/client/javafx-linux" "${OUT_WIN}/client/javafx-mac" \
     "${OUT_WIN}/client/javafx-mac-aarch64" "${OUT_WIN}/jre-linux" "${OUT_WIN}/jre-mac"
@@ -171,11 +247,13 @@ cp -f "${PACKAGING}/1-Demarrer-Serveur.sh" "${OUT_UNIX}/"
 cp -f "${PACKAGING}/2-Demarrer-LeSourire.sh" "${OUT_UNIX}/"
 cp -f "${PACKAGING}/2-Demarrer-LeSourire-debug.sh" "${OUT_UNIX}/"
 cp -f "${PACKAGING}/ToutDemarrer.sh" "${OUT_UNIX}/"
+cp -f "${PACKAGING}/Arreter-Serveur.sh" "${OUT_UNIX}/"
 chmod +x "${OUT_UNIX}/runtime-unix.sh" \
     "${OUT_UNIX}/1-Demarrer-Serveur.sh" \
     "${OUT_UNIX}/2-Demarrer-LeSourire.sh" \
     "${OUT_UNIX}/2-Demarrer-LeSourire-debug.sh" \
-    "${OUT_UNIX}/ToutDemarrer.sh"
+    "${OUT_UNIX}/ToutDemarrer.sh" \
+    "${OUT_UNIX}/Arreter-Serveur.sh"
 rm -f "${OUT_UNIX}"/*.bat "${OUT_UNIX}/serveur/"*.bat
 rm -rf "${OUT_UNIX}/client/javafx-windows" "${OUT_UNIX}/jre-windows"
 if [ ! -f "${OUT_UNIX}/serveur/lesourire-serveur.conf.sh" ]; then

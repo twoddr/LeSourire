@@ -67,8 +67,17 @@
                 <version>${spring-boot.version}</version>
                 <executions>
                     <execution>
+                        <id>repackage</id>
                         <goals>
                             <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                    <!-- Génère META-INF/build-info.properties : source unique de la
+                         version exposée par /api/systeme/statut (propriété revision). -->
+                    <execution>
+                        <id>build-info</id>
+                        <goals>
+                            <goal>build-info</goal>
                         </goals>
                     </execution>
                 </executions>

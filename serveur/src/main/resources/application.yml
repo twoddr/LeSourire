@@ -23,8 +23,19 @@ server:
     include-message: always
 
 lesourire:
-  version: 0.1.0
+  # Chiffrement au repos des données sensibles (AES-256-GCM).
+  # - cle : clé en base64 (16/24/32 octets). Vide = lecture (ou création) du
+  #   fichier ci-dessous.
+  # - fichier : emplacement de la clé lorsque l'environnement n'en fournit pas.
+  # La clé DOIT être sauvegardée avec la base : sans elle, les données
+  # (identité et dossier médical des patients) sont définitivement illisibles.
+  chiffrement:
+    cle: ${LESOURIRE_CHIFFREMENT_CLE:}
+    fichier: ${LESOURIRE_CHIFFREMENT_FICHIER:fichiers/cle-chiffrement.key}
 
 logging:
+  file:
+    # Renseigné par les lanceurs (LESOURIRE_LOG) : sans valeur, pas de fichier.
+    name: ${LESOURIRE_LOG:}
   level:
     com.lesourire: INFO

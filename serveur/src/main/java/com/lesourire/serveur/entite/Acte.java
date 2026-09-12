@@ -3,7 +3,10 @@ package com.lesourire.serveur.entite;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import com.lesourire.serveur.crypto.ChiffreurTexte;
+
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -60,6 +63,7 @@ public class Acte {
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal montant;
 
+    @Convert(converter = ChiffreurTexte.class)
     @Column(columnDefinition = "TEXT")
     private String observations;
 

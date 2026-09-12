@@ -21,7 +21,9 @@ Premier démarrage (PC principal / serveur)
 
 2. Dans un terminal, depuis ce dossier :
      ./1-Demarrer-Serveur.sh
-   Laissez le terminal ouvert.
+   Le serveur affiche ses logs dans le terminal et les écrit dans
+   serveur/logs/lesourire-serveur.log (Ctrl+C pour arrêter).
+   Pour un lancement masqué, utilisez plutôt ./ToutDemarrer.sh.
 
 3. Dans un autre terminal :
      ./2-Demarrer-LeSourire.sh
@@ -32,7 +34,8 @@ Premier démarrage (PC principal / serveur)
 Un seul PC
 ----------
 Vous pouvez utiliser ./ToutDemarrer.sh :
-cela lance le serveur puis le client.
+cela lance le serveur en arrière-plan, attend qu'il soit prêt,
+puis lance le client. Arrêtez le serveur avec ./Arreter-Serveur.sh.
 
 Postes clients supplémentaires
 ------------------------------
@@ -49,8 +52,9 @@ Flyway applique les migrations au démarrage du serveur.
 
 Dépannage
 ---------
-- « Le serveur n'est pas lancé » : vérifier que
-  ./1-Demarrer-Serveur.sh tourne et que le pare-feu autorise le port 8420.
+- « Le serveur n'est pas lancé » : vérifier que le serveur tourne
+  (./Arreter-Serveur.sh vous indique son état), que le pare-feu autorise
+  le port 8420, et consulter serveur/logs/lesourire-serveur.log.
 - « Java Runtime introuvable » : dossier jre-linux ou jre-mac manquant.
 - Erreur BD : MariaDB démarré ? Identifiants dans lesourire-serveur.conf.sh ?
   Script sql/01_creer_bd.sql exécuté (créé aussi l’utilisateur lesourire@localhost) ?

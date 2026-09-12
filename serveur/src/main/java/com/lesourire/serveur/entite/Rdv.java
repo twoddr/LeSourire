@@ -5,8 +5,10 @@ import java.time.LocalDateTime;
 import com.lesourire.commun.StatutRdv;
 import com.lesourire.commun.TypeRdv;
 import com.lesourire.commun.dto.RdvDTO;
+import com.lesourire.serveur.crypto.ChiffreurTexte;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -48,12 +50,14 @@ public class Rdv {
     @Column(nullable = false, length = 30)
     private StatutRdv statut = StatutRdv.PLANIFIE;
 
-    @Column(length = 255)
+    @Convert(converter = ChiffreurTexte.class)
+    @Column(length = 512)
     private String motif;
 
     @Column(name = "fk_acte_origine")
     private Long acteOrigineId;
 
+    @Convert(converter = ChiffreurTexte.class)
     @Column(columnDefinition = "TEXT")
     private String notes;
 

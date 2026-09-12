@@ -1,5 +1,6 @@
 package com.lesourire.serveur.service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
@@ -33,9 +34,29 @@ public class UtilisateurService {
     @Transactional(readOnly = true)
     public List<UtilisateurDTO> rechercher(String recherche, boolean inclureInactifs) {
         String q = recherche == null ? "" : recherche.trim().toLowerCase(Locale.FRENCH);
-        return utilisateurRepository.rechercher(q, inclureInactifs).stream()
+        // Nom et prénom sont chiffrés en base : filtrage et tri en mémoire.
+        return utilisateurRepository.findAll().stream()
+                .filter(u -> inclureInactifs || u.isActif())
+                .filter(u -> correspond(u, q))
+                .sorted(Comparator.comparing(Utilisateur::getNom,
+                                Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER))
+                        .thenComparing(Utilisateur::getPrenom,
+                                Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER))
+                        .thenComparing(Utilisateur::getNomUtilisateur,
+                                Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER)))
                 .map(Utilisateur::versDTO)
                 .toList();
+    }
+
+    private static boolean correspond(Utilisateur u, String q) {
+        return q.isEmpty()
+                || contient(u.getNomUtilisateur(), q)
+                || contient(u.getNom(), q)
+                || contient(u.getPrenom(), q);
+    }
+
+    private static boolean contient(String valeur, String q) {
+        return valeur != null && valeur.toLowerCase(Locale.FRENCH).contains(q);
     }
 
     @Transactional(readOnly = true)

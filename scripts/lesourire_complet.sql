@@ -1,22 +1,24 @@
 -- ============================================================================
--- LE SOURIRE - Base de données complète (schéma V1 à V5 + données initiales)
+-- LE SOURIRE - Base de données complète (schéma V1 à V9 + données initiales)
 -- ----------------------------------------------------------------------------
 -- Import :   mariadb -u root -p < lesourire_complet.sql
 --            (le fichier crée lui-même la base `lesourire`)
--- Droits :   CREATE USER IF NOT EXISTS 'lesourire'@'localhost' IDENTIFIED BY 'lesourire';
---            GRANT ALL PRIVILEGES ON lesourire.* TO 'lesourire'@'localhost';
 --
 -- Ce dump contient la table flyway_schema_history avec les sommes de contrôle
--- des migrations V1 à V5 : le serveur démarrera dessus sans rien rejouer, et
--- les futures migrations (V6, ...) s'appliqueront automatiquement.
+-- des migrations V1 à V9 : le serveur démarrera dessus sans rien rejouer.
 --
--- Compte applicatif initial : admin / admin (à changer dès la 1re connexion).
+-- Les données sensibles (identité et dossier médical des patients, coordonnées
+-- des utilisateurs) sont chiffrées par l'application à l'écriture : ce dump ne
+-- contient donc que les données de départ en clair (compte admin, tarifaire,
+-- paramètres), sans aucune donnée patient.
+--
+-- Compte applicatif initial : admin / admin (empreinte bcrypt ; à changer dès
+-- la première connexion).
 -- ============================================================================
-
 /*M!999999\- enable the sandbox mode */ 
 -- MariaDB dump 10.19-12.3.2-MariaDB, for Linux (x86_64)
 --
--- Host: localhost    Database: lesourire
+-- Host: 127.0.0.1    Database: lesourire
 -- ------------------------------------------------------
 -- Server version	12.3.2-MariaDB
 
@@ -396,11 +398,15 @@ SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
 LOCK TABLES `flyway_schema_history` WRITE;
 /*!40000 ALTER TABLE `flyway_schema_history` DISABLE KEYS */;
 INSERT INTO `flyway_schema_history` VALUES
-(1,'1','schema initial','SQL','V1__schema_initial.sql',1773260874,'lesourire','2026-07-10 12:11:26',45,1),
-(2,'2','donnees initiales','SQL','V2__donnees_initiales.sql',974152615,'lesourire','2026-07-10 12:11:26',20,1),
-(3,'3','suivi paiements par payeur','SQL','V3__suivi_paiements_par_payeur.sql',136848372,'lesourire','2026-07-10 12:11:26',38,1),
-(4,'4','historique couverture patient','SQL','V4__historique_couverture_patient.sql',1617480746,'lesourire','2026-07-10 12:11:26',15,1),
-(5,'5','triggers stock et categories','SQL','V5__triggers_stock_et_categories.sql',-760687993,'lesourire','2026-07-10 12:11:26',13,1);
+(1,'1','schema initial','SQL','V1__schema_initial.sql',1773260874,'admin','2026-09-12 21:37:29',255,1),
+(2,'2','donnees initiales','SQL','V2__donnees_initiales.sql',974152615,'admin','2026-09-12 21:37:29',24,1),
+(3,'3','suivi paiements par payeur','SQL','V3__suivi_paiements_par_payeur.sql',136848372,'admin','2026-09-12 21:37:29',87,1),
+(4,'4','historique couverture patient','SQL','V4__historique_couverture_patient.sql',1617480746,'admin','2026-09-12 21:37:29',38,1),
+(5,'5','triggers stock et categories','SQL','V5__triggers_stock_et_categories.sql',-760687993,'admin','2026-09-12 21:37:29',44,1),
+(6,'6','recreer triggers stock','SQL','V6__recreer_triggers_stock.sql',-973994028,'admin','2026-09-12 21:37:29',29,1),
+(7,'7','recreer definer paiement couverture','SQL','V7__recreer_definer_paiement_couverture.sql',-549135522,'admin','2026-09-12 21:37:29',91,1),
+(8,'8','chiffrement donnees sensibles','SQL','V8__chiffrement_donnees_sensibles.sql',1427343996,'admin','2026-09-12 21:37:29',129,1),
+(9,'9','mot de passe admin bcrypt','SQL','V9__mot_de_passe_admin_bcrypt.sql',513412879,'admin','2026-09-12 21:37:29',4,1);
 /*!40000 ALTER TABLE `flyway_schema_history` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;
@@ -517,11 +523,11 @@ SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
 /*!50003 SET character_set_client  = utf8mb4 */ ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
+/*!50003 SET collation_connection  = utf8mb4_uca1400_ai_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'IGNORE_SPACE,STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`lesourire`@`localhost`*/ /*!50003 TRIGGER trg_mouvement_stock_after_insert
+/*!50003 CREATE*/ /*!50017 */ /*!50003 TRIGGER trg_mouvement_stock_after_insert
 AFTER INSERT ON mouvement_stock
 FOR EACH ROW
 BEGIN
@@ -548,11 +554,11 @@ DELIMITER ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
 /*!50003 SET character_set_client  = utf8mb4 */ ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
+/*!50003 SET collation_connection  = utf8mb4_uca1400_ai_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'IGNORE_SPACE,STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`lesourire`@`localhost`*/ /*!50003 TRIGGER trg_mouvement_stock_after_delete
+/*!50003 CREATE*/ /*!50017 */ /*!50003 TRIGGER trg_mouvement_stock_after_delete
 AFTER DELETE ON mouvement_stock
 FOR EACH ROW
 BEGIN
@@ -620,11 +626,11 @@ SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
 /*!50003 SET character_set_client  = utf8mb4 */ ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
+/*!50003 SET collation_connection  = utf8mb4_uca1400_ai_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'IGNORE_SPACE,STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`lesourire`@`localhost`*/ /*!50003 TRIGGER trg_paiement_after_insert
+/*!50003 CREATE*/ /*!50017 */ /*!50003 TRIGGER trg_paiement_after_insert
 AFTER INSERT ON paiement
 FOR EACH ROW
 BEGIN
@@ -641,11 +647,11 @@ DELIMITER ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
 /*!50003 SET character_set_client  = utf8mb4 */ ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
+/*!50003 SET collation_connection  = utf8mb4_uca1400_ai_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'IGNORE_SPACE,STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`lesourire`@`localhost`*/ /*!50003 TRIGGER trg_paiement_after_update
+/*!50003 CREATE*/ /*!50017 */ /*!50003 TRIGGER trg_paiement_after_update
 AFTER UPDATE ON paiement
 FOR EACH ROW
 BEGIN
@@ -665,11 +671,11 @@ DELIMITER ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
 /*!50003 SET character_set_client  = utf8mb4 */ ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
+/*!50003 SET collation_connection  = utf8mb4_uca1400_ai_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'IGNORE_SPACE,STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`lesourire`@`localhost`*/ /*!50003 TRIGGER trg_paiement_after_delete
+/*!50003 CREATE*/ /*!50017 */ /*!50003 TRIGGER trg_paiement_after_delete
 AFTER DELETE ON paiement
 FOR EACH ROW
 BEGIN
@@ -706,21 +712,21 @@ SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
 LOCK TABLES `parametre` WRITE;
 /*!40000 ALTER TABLE `parametre` DISABLE KEYS */;
 INSERT INTO `parametre` VALUES
-('cabinet.adresse','100 Rue Dikoumé Bell, Bali, BP 4302 Douala, Cameroun','Adresse du cabinet','2026-07-10 14:11:26'),
-('cabinet.devise','XAF','Devise (franc CFA)','2026-07-10 14:11:26'),
-('cabinet.email','','Adresse mail du cabinet','2026-07-10 14:11:26'),
-('cabinet.fuseau_horaire','Africa/Douala','Fuseau horaire','2026-07-10 14:11:26'),
-('cabinet.nom','Cabinet Dentaire Le Sourire','Nom affiché sur les documents','2026-07-10 14:11:26'),
-('cabinet.praticien','Docteur Nadine TOWE','Praticien principal','2026-07-10 14:11:26'),
-('cabinet.telephone','(237) 233 431 411','Téléphone du cabinet','2026-07-10 14:11:26'),
-('rappel.heure_envoi','09:00','Heure d\'envoi des rappels du jour','2026-07-10 14:11:26'),
-('rappel.jours_avant_rdv','2','Nombre de jours avant RDV pour le rappel','2026-07-10 14:11:26'),
-('sauvegarde.dossier','sauvegardes','Dossier des sauvegardes de la BD','2026-07-10 14:11:26'),
-('sauvegarde.heure','22:00','Heure de la sauvegarde quotidienne','2026-07-10 14:11:26'),
-('smtp.hote','','Serveur SMTP pour les mails','2026-07-10 14:11:26'),
-('smtp.mot_de_passe','','Mot de passe SMTP','2026-07-10 14:11:26'),
-('smtp.port','587','Port SMTP','2026-07-10 14:11:26'),
-('smtp.utilisateur','','Compte SMTP','2026-07-10 14:11:26');
+('cabinet.adresse','100 Rue Dikoumé Bell, Bali, BP 4302 Douala, Cameroun','Adresse du cabinet','2026-09-12 23:37:29'),
+('cabinet.devise','XAF','Devise (franc CFA)','2026-09-12 23:37:29'),
+('cabinet.email','','Adresse mail du cabinet','2026-09-12 23:37:29'),
+('cabinet.fuseau_horaire','Africa/Douala','Fuseau horaire','2026-09-12 23:37:29'),
+('cabinet.nom','Cabinet Dentaire Le Sourire','Nom affiché sur les documents','2026-09-12 23:37:29'),
+('cabinet.praticien','Docteur Nadine TOWE','Praticien principal','2026-09-12 23:37:29'),
+('cabinet.telephone','(237) 233 431 411','Téléphone du cabinet','2026-09-12 23:37:29'),
+('rappel.heure_envoi','09:00','Heure d\'envoi des rappels du jour','2026-09-12 23:37:29'),
+('rappel.jours_avant_rdv','2','Nombre de jours avant RDV pour le rappel','2026-09-12 23:37:29'),
+('sauvegarde.dossier','sauvegardes','Dossier des sauvegardes de la BD','2026-09-12 23:37:29'),
+('sauvegarde.heure','22:00','Heure de la sauvegarde quotidienne','2026-09-12 23:37:29'),
+('smtp.hote','','Serveur SMTP pour les mails','2026-09-12 23:37:29'),
+('smtp.mot_de_passe','','Mot de passe SMTP','2026-09-12 23:37:29'),
+('smtp.port','587','Port SMTP','2026-09-12 23:37:29'),
+('smtp.utilisateur','','Compte SMTP','2026-09-12 23:37:29');
 /*!40000 ALTER TABLE `parametre` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;
@@ -736,19 +742,19 @@ DROP TABLE IF EXISTS `patient`;
 CREATE TABLE `patient` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `numero_dossier` varchar(20) NOT NULL,
-  `nom` varchar(150) NOT NULL,
-  `prenom` varchar(150) DEFAULT NULL,
+  `nom` varchar(512) NOT NULL,
+  `prenom` varchar(512) DEFAULT NULL,
   `date_naissance` date DEFAULT NULL,
   `sexe` char(1) DEFAULT NULL,
-  `telephone` varchar(30) DEFAULT NULL,
-  `telephone_whatsapp` varchar(30) DEFAULT NULL,
-  `email` varchar(255) DEFAULT NULL,
-  `adresse` varchar(255) DEFAULT NULL,
-  `quartier` varchar(150) DEFAULT NULL,
-  `ville` varchar(150) DEFAULT NULL,
-  `profession` varchar(150) DEFAULT NULL,
-  `personne_urgence_nom` varchar(150) DEFAULT NULL,
-  `personne_urgence_tel` varchar(30) DEFAULT NULL,
+  `telephone` varchar(255) DEFAULT NULL,
+  `telephone_whatsapp` varchar(255) DEFAULT NULL,
+  `email` varchar(512) DEFAULT NULL,
+  `adresse` varchar(512) DEFAULT NULL,
+  `quartier` varchar(512) DEFAULT NULL,
+  `ville` varchar(512) DEFAULT NULL,
+  `profession` varchar(512) DEFAULT NULL,
+  `personne_urgence_nom` varchar(512) DEFAULT NULL,
+  `personne_urgence_tel` varchar(255) DEFAULT NULL,
   `antecedents` text DEFAULT NULL,
   `allergies` text DEFAULT NULL,
   `notes` text DEFAULT NULL,
@@ -759,8 +765,6 @@ CREATE TABLE `patient` (
   `modifie_le` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_patient_numero_dossier` (`numero_dossier`),
-  KEY `idx_patient_nom` (`nom`,`prenom`),
-  KEY `idx_patient_telephone` (`telephone`),
   KEY `fk_patient_createur` (`cree_par`),
   CONSTRAINT `fk_patient_createur` FOREIGN KEY (`cree_par`) REFERENCES `utilisateur` (`id`),
   CONSTRAINT `ck_patient_sexe` CHECK (`sexe` in ('M','F'))
@@ -792,7 +796,7 @@ CREATE TABLE `patient_couverture` (
   `type` varchar(20) NOT NULL,
   `fk_assureur` bigint(20) DEFAULT NULL,
   `fk_societe` bigint(20) DEFAULT NULL,
-  `numero_assure` varchar(50) DEFAULT NULL,
+  `numero_assure` varchar(255) DEFAULT NULL,
   `pourcentage` decimal(5,2) DEFAULT NULL,
   `date_debut` date NOT NULL,
   `date_fin` date DEFAULT NULL,
@@ -829,11 +833,11 @@ SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
 /*!50003 SET character_set_client  = utf8mb4 */ ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
+/*!50003 SET collation_connection  = utf8mb4_uca1400_ai_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'IGNORE_SPACE,STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`lesourire`@`localhost`*/ /*!50003 TRIGGER trg_couverture_check_chevauchement
+/*!50003 CREATE*/ /*!50017 */ /*!50003 TRIGGER trg_couverture_check_chevauchement
 BEFORE INSERT ON patient_couverture
 FOR EACH ROW
 BEGIN
@@ -894,23 +898,23 @@ SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
 LOCK TABLES `prestation` WRITE;
 /*!40000 ALTER TABLE `prestation` DISABLE KEYS */;
 INSERT INTO `prestation` VALUES
-(1,'CONS-JOUR','Consultation de jour',1,NULL,NULL,15000.00,NULL,1,'2026-07-10 14:11:26','2026-07-10 14:11:26'),
-(2,'CONS-NUIT','Consultation de nuit',1,NULL,NULL,20000.00,NULL,1,'2026-07-10 14:11:26','2026-07-10 14:11:26'),
-(3,'CAV-2F','Cavité composée (2 faces)',2,'D',12.00,NULL,NULL,1,'2026-07-10 14:11:26','2026-07-10 14:11:26'),
-(4,'CAV-3F','Cavité composée (3 faces)',2,'D',15.00,NULL,NULL,1,'2026-07-10 14:11:26','2026-07-10 14:11:26'),
-(5,'PULP-IC','Pulpectomie incisivo-canine',2,'D',10.00,NULL,NULL,1,'2026-07-10 14:11:26','2026-07-10 14:11:26'),
-(6,'PULP-PM','Pulpectomie prémolaire',2,'D',15.00,NULL,NULL,1,'2026-07-10 14:11:26','2026-07-10 14:11:26'),
-(7,'PULP-MOL','Pulpectomie groupe molaire',2,'D',25.00,NULL,NULL,1,'2026-07-10 14:11:26','2026-07-10 14:11:26'),
-(8,'RECON-BASE','Reconstitution (base)',2,'D',6.00,NULL,'Tarifaire : D6 + D18/D30 selon le cas',1,'2026-07-10 14:11:26','2026-07-10 14:11:26'),
-(9,'RECON-18','Reconstitution (complément D18)',2,'D',18.00,NULL,'Tarifaire : D6 + D18/D30 selon le cas',1,'2026-07-10 14:11:26','2026-07-10 14:11:26'),
-(10,'RECON-30','Reconstitution (complément D30)',2,'D',30.00,NULL,'Tarifaire : D6 + D18/D30 selon le cas',1,'2026-07-10 14:11:26','2026-07-10 14:11:26'),
-(11,'EXT-SIMPLE','Extraction d\'une dent',3,'D',10.00,NULL,NULL,1,'2026-07-10 14:11:26','2026-07-10 14:11:26'),
-(12,'EXT-MALPOS','Extraction d\'une dent en malposition',3,'D',20.00,NULL,NULL,1,'2026-07-10 14:11:26','2026-07-10 14:11:26'),
-(13,'EXT-INCL','Extraction d\'une dent incluse ou enclavée',3,'D',40.00,NULL,NULL,1,'2026-07-10 14:11:26','2026-07-10 14:11:26'),
-(14,'RX-INTRA','Examen intra-buccal',5,'Z',4.00,NULL,NULL,1,'2026-07-10 14:11:26','2026-07-10 14:11:26'),
-(15,'RX-EXTRA','Examen extra-buccal',5,'Z',16.00,NULL,NULL,1,'2026-07-10 14:11:26','2026-07-10 14:11:26'),
-(16,'ORTHO-MA','Traitement par multi-attaches (par semestre)',6,NULL,NULL,500000.00,NULL,1,'2026-07-10 14:11:26','2026-07-10 14:11:26'),
-(17,'ORTHO-INT','Traitement interceptif',6,NULL,NULL,300000.00,NULL,1,'2026-07-10 14:11:26','2026-07-10 14:11:26');
+(1,'CONS-JOUR','Consultation de jour',1,NULL,NULL,15000.00,NULL,1,'2026-09-12 23:37:29','2026-09-12 23:37:29'),
+(2,'CONS-NUIT','Consultation de nuit',1,NULL,NULL,20000.00,NULL,1,'2026-09-12 23:37:29','2026-09-12 23:37:29'),
+(3,'CAV-2F','Cavité composée (2 faces)',2,'D',12.00,NULL,NULL,1,'2026-09-12 23:37:29','2026-09-12 23:37:29'),
+(4,'CAV-3F','Cavité composée (3 faces)',2,'D',15.00,NULL,NULL,1,'2026-09-12 23:37:29','2026-09-12 23:37:29'),
+(5,'PULP-IC','Pulpectomie incisivo-canine',2,'D',10.00,NULL,NULL,1,'2026-09-12 23:37:29','2026-09-12 23:37:29'),
+(6,'PULP-PM','Pulpectomie prémolaire',2,'D',15.00,NULL,NULL,1,'2026-09-12 23:37:29','2026-09-12 23:37:29'),
+(7,'PULP-MOL','Pulpectomie groupe molaire',2,'D',25.00,NULL,NULL,1,'2026-09-12 23:37:29','2026-09-12 23:37:29'),
+(8,'RECON-BASE','Reconstitution (base)',2,'D',6.00,NULL,'Tarifaire : D6 + D18/D30 selon le cas',1,'2026-09-12 23:37:29','2026-09-12 23:37:29'),
+(9,'RECON-18','Reconstitution (complément D18)',2,'D',18.00,NULL,'Tarifaire : D6 + D18/D30 selon le cas',1,'2026-09-12 23:37:29','2026-09-12 23:37:29'),
+(10,'RECON-30','Reconstitution (complément D30)',2,'D',30.00,NULL,'Tarifaire : D6 + D18/D30 selon le cas',1,'2026-09-12 23:37:29','2026-09-12 23:37:29'),
+(11,'EXT-SIMPLE','Extraction d\'une dent',3,'D',10.00,NULL,NULL,1,'2026-09-12 23:37:29','2026-09-12 23:37:29'),
+(12,'EXT-MALPOS','Extraction d\'une dent en malposition',3,'D',20.00,NULL,NULL,1,'2026-09-12 23:37:29','2026-09-12 23:37:29'),
+(13,'EXT-INCL','Extraction d\'une dent incluse ou enclavée',3,'D',40.00,NULL,NULL,1,'2026-09-12 23:37:29','2026-09-12 23:37:29'),
+(14,'RX-INTRA','Examen intra-buccal',5,'Z',4.00,NULL,NULL,1,'2026-09-12 23:37:29','2026-09-12 23:37:29'),
+(15,'RX-EXTRA','Examen extra-buccal',5,'Z',16.00,NULL,NULL,1,'2026-09-12 23:37:29','2026-09-12 23:37:29'),
+(16,'ORTHO-MA','Traitement par multi-attaches (par semestre)',6,NULL,NULL,500000.00,NULL,1,'2026-09-12 23:37:29','2026-09-12 23:37:29'),
+(17,'ORTHO-INT','Traitement interceptif',6,NULL,NULL,300000.00,NULL,1,'2026-09-12 23:37:29','2026-09-12 23:37:29');
 /*!40000 ALTER TABLE `prestation` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;
@@ -932,7 +936,7 @@ CREATE TABLE `rappel` (
   `date_prevue` datetime NOT NULL,
   `date_envoi` datetime DEFAULT NULL,
   `statut` varchar(20) NOT NULL DEFAULT 'EN_ATTENTE',
-  `destinataire` varchar(255) DEFAULT NULL,
+  `destinataire` varchar(512) DEFAULT NULL,
   `contenu` text DEFAULT NULL,
   `message_erreur` text DEFAULT NULL,
   `cree_le` datetime NOT NULL DEFAULT current_timestamp(),
@@ -976,7 +980,7 @@ CREATE TABLE `rdv` (
   `fin` datetime NOT NULL,
   `type` varchar(30) NOT NULL DEFAULT 'CONSULTATION',
   `statut` varchar(30) NOT NULL DEFAULT 'PLANIFIE',
-  `motif` varchar(255) DEFAULT NULL,
+  `motif` varchar(512) DEFAULT NULL,
   `fk_acte_origine` bigint(20) DEFAULT NULL,
   `notes` text DEFAULT NULL,
   `cree_par` bigint(20) DEFAULT NULL,
@@ -1055,11 +1059,11 @@ CREATE TABLE `utilisateur` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `nom_utilisateur` varchar(50) NOT NULL,
   `mot_de_passe` varchar(255) NOT NULL,
-  `nom` varchar(100) NOT NULL,
-  `prenom` varchar(100) DEFAULT NULL,
+  `nom` varchar(512) NOT NULL,
+  `prenom` varchar(512) DEFAULT NULL,
   `role` varchar(20) NOT NULL,
-  `email` varchar(255) DEFAULT NULL,
-  `telephone` varchar(30) DEFAULT NULL,
+  `email` varchar(512) DEFAULT NULL,
+  `telephone` varchar(255) DEFAULT NULL,
   `actif` tinyint(1) NOT NULL DEFAULT 1,
   `cree_le` datetime NOT NULL DEFAULT current_timestamp(),
   `modifie_le` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
@@ -1077,7 +1081,7 @@ SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
 LOCK TABLES `utilisateur` WRITE;
 /*!40000 ALTER TABLE `utilisateur` DISABLE KEYS */;
 INSERT INTO `utilisateur` VALUES
-(1,'admin','{noop}admin','Administrateur',NULL,'ADMINISTRATEUR',NULL,NULL,1,'2026-07-10 14:11:26','2026-07-10 14:11:26');
+(1,'admin','{bcrypt}$2b$10$jdmfhXzDWE35lFNPH9DQm.EWccpBQBXePmGtGB6Teqga6u5rMJiei','Administrateur',NULL,'ADMINISTRATEUR',NULL,NULL,1,'2026-09-12 23:37:29','2026-09-12 23:37:29');
 /*!40000 ALTER TABLE `utilisateur` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;
@@ -1171,9 +1175,9 @@ SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
 /*!50003 SET character_set_client  = utf8mb4 */ ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
+/*!50003 SET collation_connection  = utf8mb4_uca1400_ai_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=`lesourire`@`localhost` PROCEDURE `sp_recalculer_facture`(IN p_fk_facture BIGINT)
+CREATE  PROCEDURE `sp_recalculer_facture`(IN p_fk_facture BIGINT)
 BEGIN
     DECLARE v_paye_patient, v_paye_assureur, v_paye_societe DECIMAL(12,2);
     DECLARE v_quote_patient, v_quote_assureur, v_quote_societe DECIMAL(12,2);
@@ -1231,9 +1235,9 @@ USE `lesourire`;
 /*!50001 SET @saved_col_connection     = @@collation_connection */;
 /*!50001 SET character_set_client      = utf8mb4 */;
 /*!50001 SET character_set_results     = utf8mb4 */;
-/*!50001 SET collation_connection      = utf8mb4_unicode_ci */;
+/*!50001 SET collation_connection      = utf8mb4_uca1400_ai_ci */;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
-/*!50013 DEFINER=`lesourire`@`localhost` SQL SECURITY DEFINER */
+/*!50013  SQL SECURITY DEFINER */
 /*!50001 VIEW `v_couverture_active` AS select `patient_couverture`.`id` AS `id`,`patient_couverture`.`fk_patient` AS `fk_patient`,`patient_couverture`.`type` AS `type`,`patient_couverture`.`fk_assureur` AS `fk_assureur`,`patient_couverture`.`fk_societe` AS `fk_societe`,`patient_couverture`.`numero_assure` AS `numero_assure`,`patient_couverture`.`pourcentage` AS `pourcentage`,`patient_couverture`.`date_debut` AS `date_debut`,`patient_couverture`.`date_fin` AS `date_fin`,`patient_couverture`.`motif_fin` AS `motif_fin`,`patient_couverture`.`cree_par` AS `cree_par`,`patient_couverture`.`cree_le` AS `cree_le` from `patient_couverture` where `patient_couverture`.`date_debut` <= curdate() and (`patient_couverture`.`date_fin` is null or `patient_couverture`.`date_fin` >= curdate()) */;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
@@ -1249,9 +1253,9 @@ USE `lesourire`;
 /*!50001 SET @saved_col_connection     = @@collation_connection */;
 /*!50001 SET character_set_client      = utf8mb4 */;
 /*!50001 SET character_set_results     = utf8mb4 */;
-/*!50001 SET collation_connection      = utf8mb4_unicode_ci */;
+/*!50001 SET collation_connection      = utf8mb4_uca1400_ai_ci */;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
-/*!50013 DEFINER=`lesourire`@`localhost` SQL SECURITY DEFINER */
+/*!50013  SQL SECURITY DEFINER */
 /*!50001 VIEW `v_facture_relance` AS select `f`.`id` AS `id`,`f`.`numero` AS `numero`,`f`.`date_facture` AS `date_facture`,`f`.`date_echeance` AS `date_echeance`,`p`.`nom` AS `patient_nom`,`p`.`prenom` AS `patient_prenom`,'PATIENT' AS `payeur_type`,NULL AS `payeur_nom`,`f`.`solde_patient` AS `solde` from (`facture` `f` join `patient` `p` on(`p`.`id` = `f`.`fk_patient`)) where `f`.`solde_patient` > 0 and `f`.`statut` not in ('BROUILLON','ANNULEE') union all select `f`.`id` AS `id`,`f`.`numero` AS `numero`,`f`.`date_facture` AS `date_facture`,`f`.`date_echeance` AS `date_echeance`,`p`.`nom` AS `nom`,`p`.`prenom` AS `prenom`,'ASSUREUR' AS `ASSUREUR`,`a`.`nom` AS `nom`,`f`.`solde_assureur` AS `solde_assureur` from ((`facture` `f` join `patient` `p` on(`p`.`id` = `f`.`fk_patient`)) join `assureur` `a` on(`a`.`id` = `f`.`fk_assureur`)) where `f`.`solde_assureur` > 0 and `f`.`statut` not in ('BROUILLON','ANNULEE') union all select `f`.`id` AS `id`,`f`.`numero` AS `numero`,`f`.`date_facture` AS `date_facture`,`f`.`date_echeance` AS `date_echeance`,`p`.`nom` AS `nom`,`p`.`prenom` AS `prenom`,'SOCIETE' AS `SOCIETE`,`s`.`nom` AS `nom`,`f`.`solde_societe` AS `solde_societe` from ((`facture` `f` join `patient` `p` on(`p`.`id` = `f`.`fk_patient`)) join `societe` `s` on(`s`.`id` = `f`.`fk_societe`)) where `f`.`solde_societe` > 0 and `f`.`statut` not in ('BROUILLON','ANNULEE') */;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
@@ -1266,4 +1270,4 @@ USE `lesourire`;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 
--- Dump completed on 2026-07-10 14:17:17
+-- Dump completed on 2026-09-12 23:38:31

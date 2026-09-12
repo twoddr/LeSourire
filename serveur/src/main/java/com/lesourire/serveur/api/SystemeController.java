@@ -3,7 +3,8 @@ package com.lesourire.serveur.api;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -13,8 +14,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/systeme")
 public class SystemeController {
 
-    @Value("${lesourire.version:0.1.0}")
-    private String version;
+    private final String version;
+
+    public SystemeController(ObjectProvider<BuildProperties> buildProperties) {
+        // Version issue de META-INF/build-info.properties, elle-même générée depuis
+        // la propriété <revision> du pom racine : une seule source de vérité.
+        BuildProperties build = buildProperties.getIfAvailable();
+        this.version = build != null ? build.getVersion() : "inconnue";
+    }
 
     @GetMapping("/statut")
     public Map<String, String> statut() {

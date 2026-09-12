@@ -17,7 +17,9 @@ Premier démarrage (PC principal / serveur)
    - port Le Sourire (défaut 8420)
 
 2. Double-cliquez : 1-Demarrer-Serveur.bat
-   Laissez la fenêtre ouverte.
+   Le serveur démarre sans fenêtre ; ses logs sont écrits dans
+   serveur\logs\lesourire-serveur.log.
+   Pour l'arrêter : double-cliquez Arreter-Serveur.bat.
 
 3. Double-cliquez : 2-Demarrer-LeSourire.bat
    Connexion : admin / admin
@@ -27,7 +29,8 @@ Premier démarrage (PC principal / serveur)
 Un seul PC
 ----------
 Vous pouvez utiliser ToutDemarrer.bat :
-cela lance le serveur puis le client.
+cela lance le serveur (fenêtre masquée), attend qu'il soit prêt,
+puis lance le client. Arrêtez le serveur avec Arreter-Serveur.bat.
 
 Postes clients supplémentaires
 ------------------------------
@@ -44,8 +47,9 @@ Flyway applique les migrations au démarrage du serveur.
 
 Dépannage
 ---------
-- « Le serveur n'est pas lancé » : vérifier que
-  1-Demarrer-Serveur.bat est ouvert et que le pare-feu autorise le port 8420.
+- « Le serveur n'est pas lancé » : vérifier que 1-Demarrer-Serveur.bat
+  a bien été lancé (Arreter-Serveur.bat indique s'il tourne), que le pare-feu
+  autorise le port 8420, et consulter serveur\logs\lesourire-serveur.log.
 - « Java Runtime introuvable » : dossier jre-windows manquant.
 - Erreur BD : MariaDB démarré ? Identifiants dans lesourire-serveur.conf.bat ?
   Script sql\01_creer_bd.sql exécuté (créé aussi l’utilisateur lesourire@localhost) ?

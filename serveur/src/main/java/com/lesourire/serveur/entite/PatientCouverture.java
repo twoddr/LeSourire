@@ -4,8 +4,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import com.lesourire.commun.dto.CouvertureDTO;
+import com.lesourire.serveur.crypto.ChiffreurTexte;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -43,7 +45,8 @@ public class PatientCouverture {
     @JoinColumn(name = "fk_societe")
     private Societe societe;
 
-    @Column(name = "numero_assure", length = 50)
+    @Convert(converter = ChiffreurTexte.class)
+    @Column(name = "numero_assure", length = 255)
     private String numeroAssure;
 
     @Column(precision = 5, scale = 2)

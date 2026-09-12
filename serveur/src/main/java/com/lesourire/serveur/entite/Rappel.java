@@ -3,8 +3,10 @@ package com.lesourire.serveur.entite;
 import java.time.LocalDateTime;
 
 import com.lesourire.commun.Rappels;
+import com.lesourire.serveur.crypto.ChiffreurTexte;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -50,12 +52,15 @@ public class Rappel {
     @Column(nullable = false, length = 20)
     private Rappels.Statut statut = Rappels.Statut.EN_ATTENTE;
 
-    @Column(length = 255)
+    @Convert(converter = ChiffreurTexte.class)
+    @Column(length = 512)
     private String destinataire;
 
+    @Convert(converter = ChiffreurTexte.class)
     @Column(columnDefinition = "TEXT")
     private String contenu;
 
+    @Convert(converter = ChiffreurTexte.class)
     @Column(name = "message_erreur", columnDefinition = "TEXT")
     private String messageErreur;
 

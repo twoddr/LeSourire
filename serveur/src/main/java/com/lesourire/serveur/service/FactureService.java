@@ -101,9 +101,28 @@ public class FactureService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "La date de fin doit être postérieure ou égale à la date de début.");
         }
-        return factureRepository.rechercher(q, statut, debut, fin).stream()
+        // Nom/prénom du patient chiffrés en base : filtrage texte en mémoire.
+        return factureRepository.rechercher(statut, debut, fin).stream()
+                .filter(f -> correspond(f, q))
                 .map(Facture::versDTOResume)
                 .toList();
+    }
+
+    /** Un texte peut viser le n° de facture, le n° de dossier ou le nom du patient. */
+    private static boolean correspond(Facture f, String q) {
+        if (q.isEmpty()) {
+            return true;
+        }
+        Patient patient = f.getPatient();
+        return contient(f.getNumero(), q)
+                || (patient != null
+                        && (contient(patient.getNom(), q)
+                                || contient(patient.getPrenom(), q)
+                                || contient(patient.getNumeroDossier(), q)));
+    }
+
+    private static boolean contient(String valeur, String q) {
+        return valeur != null && valeur.toLowerCase(Locale.FRENCH).contains(q);
     }
 
     @Transactional(readOnly = true)

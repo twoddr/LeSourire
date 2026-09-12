@@ -6,8 +6,10 @@ import java.time.LocalDateTime;
 import com.lesourire.commun.Facturation.ModePaiement;
 import com.lesourire.commun.Facturation.Payeur;
 import com.lesourire.commun.dto.PaiementDTO;
+import com.lesourire.serveur.crypto.ChiffreurTexte;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -56,6 +58,7 @@ public class Paiement {
     @JoinColumn(name = "recu_par")
     private Utilisateur recuPar;
 
+    @Convert(converter = ChiffreurTexte.class)
     @Column(columnDefinition = "TEXT")
     private String notes;
 

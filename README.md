@@ -36,7 +36,8 @@ revisites post-intervention) même si aucun poste client n'est allumé.
 Une seule valeur à modifier pour une release : la propriété `<revision>` dans le
 `pom.xml` racine (actuellement `0.1.0`). Les modules `commun` / `serveur` /
 `client` référencent `${revision}` ; le titre de la fenêtre client affiche cette
-version.
+version, et le serveur l'expose via `META-INF/build-info.properties` sur
+`/api/systeme/statut` (aucune version « en dur » ailleurs).
 
 - JDK 21
 - Maven 3.9+
@@ -53,7 +54,7 @@ sudo mariadb < scripts/creer_bd_dev.sql # option B : MariaDB déjà installée
 mvn package -DskipTests
 
 # 3. Lancer le serveur (applique les migrations Flyway au démarrage)
-java -jar serveur/target/lesourire-serveur-0.1.0-SNAPSHOT.jar
+java -jar serveur/target/lesourire-serveur-0.1.0.jar
 
 # 4. Lancer le client
 mvn -pl client javafx:run
@@ -65,7 +66,9 @@ démonstration** qui présente l'interface sans serveur.
 
 Configuration du serveur par variables d'environnement :
 `LESOURIRE_BD_URL`, `LESOURIRE_BD_UTILISATEUR`, `LESOURIRE_BD_MOT_DE_PASSE`,
-`LESOURIRE_PORT` (défaut : `8420`).
+`LESOURIRE_PORT` (défaut : `8420`), `LESOURIRE_CHIFFREMENT_CLE` (clé de
+chiffrement en base64) et `LESOURIRE_CHIFFREMENT_FICHIER` (défaut :
+`fichiers/cle-chiffrement.key`).
 
 ## Base de données
 
@@ -86,13 +89,51 @@ par Flyway :
   avec motif puis une nouvelle ligne), trigger anti-chevauchement ;
 - `V5__triggers_stock_et_categories.sql` — mise à jour automatique de
   `article.quantite_stock` par triggers sur `mouvement_stock`, catégories
-  d'articles initiales.
+  d'articles initiales ;
+- `V6__recreer_triggers_stock.sql` et `V7__recreer_definer_paiement_couverture.sql`
+  — recréation des procédures, triggers et vues sans `DEFINER` figé (corrige
+  l'erreur « definer does not exist » selon l'utilisateur MySQL du serveur) ;
+- `V8__chiffrement_donnees_sensibles.sql` — élargissement des colonnes
+  contenant des données sensibles (identité et dossier médical des patients,
+  coordonnées des utilisateurs, n° d'assuré) et suppression des index devenus
+  inutiles (le tri/recherche se fait en mémoire, cf. ci-dessous) ;
+- `V9__mot_de_passe_admin_bcrypt.sql` — le compte initial n'est plus stocké avec
+  `{noop}` mais sous forme d'empreinte `{bcrypt}`.
+
+### Chiffrement des données sensibles
+
+L'application chiffre **au repos** (AES‑256‑GCM) les données personnelles et
+médicales : identité et coordonnées des patients, antécédents/allergies/notes,
+motifs et notes de rendez‑vous, observations d'actes, identité et coordonnées
+des utilisateurs, numéro d'assuré, contenu des rappels et journal d'audit. Le
+format stocké est `enc:v1:<base64>` ; une valeur historique non préfixée (en
+clair) reste lisible et est chiffrée à sa prochaine modification.
+
+La clé provient, dans l'ordre : de `lesourire.chiffrement.cle`
+(`LESOURIRE_CHIFFREMENT_CLE`, base64) ; sinon du fichier indiqué par
+`lesourire.chiffrement.fichier` (`fichiers/cle-chiffrement.key` par défaut) ;
+sinon elle est générée à la première exécution dans ce fichier. **Sauvegardez ce
+fichier avec la base de données** : sans lui, les données chiffrées sont
+définitivement illisibles (une sauvegarde de la base seule ne suffit pas).
+
+Comme le nom, le prénom et les téléphones sont chiffrés, la recherche patient /
+utilisateur / facture ne se fait plus en SQL mais **en mémoire**, sur les
+valeurs déchiffrées (volumes d'un cabinet : largement suffisant).
+
+### Points de sécurité à connaître (bêta)
+
+- L'API utilise **HTTP Basic sans TLS** : les identifiants et les réponses
+  circulent en clair sur le réseau du cabinet. À réserver au réseau local de
+  confiance ; un reverse‑proxy HTTPS est recommandé dès que le serveur sort de
+  ce réseau.
+- Le compte initial `admin` / `admin` doit être changé à la première connexion
+  (le mot de passe n'est plus stocké en clair, mais reste trivial).
 
 Toute évolution du schéma = un nouveau fichier `V<n>__description.sql`,
 appliqué automatiquement chez le client à la mise à jour du serveur.
 
 Pour créer la base **sans passer par le serveur** (import direct MariaDB) :
-`scripts/lesourire_complet.sql` contient tout le schéma V1→V5, les données
+`scripts/lesourire_complet.sql` contient tout le schéma V1→V9, les données
 initiales et l'historique Flyway (le serveur démarre dessus sans rien rejouer).
 
 ## Feuille de route
@@ -117,6 +158,10 @@ Deux paquets « zip + double-clic / scripts », sans MSI pour l’instant.
 ./scripts/assembler-executables.sh
 ```
 
+Si un bureau est disponible, le script affiche une fenêtre de progression
+(`zenity`) ou une notification (`notify-send`) et signale la fin — ou l'échec.
+En SSH / sans affichage graphique, il se contente de la sortie terminal.
+
 Résultat :
 - `out/executables/lesourire-windows/` — `.bat`, JavaFX Windows, emplacement `jre-windows/`
 - `out/executables/lesourire-mac-linux/` — `.sh`, JavaFX Linux/macOS, `jre-linux/` + `jre-mac/`
@@ -126,6 +171,11 @@ Sur le PC du cabinet :
 2. Première install : exécuter `sql/01_creer_bd.sql`
 3. Vérifier `serveur/lesourire-serveur.conf.*` (BD, port 8420)
 4. `1-Demarrer-Serveur` puis `2-Demarrer-LeSourire` — ou `ToutDemarrer`
+
+`ToutDemarrer` lance le serveur en arrière-plan (fenêtre masquée), attend
+qu'il réponde sur `/api/systeme/statut`, puis ouvre le client. Les logs du
+serveur sont dans `serveur/logs/lesourire-serveur.log` ; pour l'arrêter,
+utiliser `Arreter-Serveur` (`.bat` sous Windows, `.sh` sous Linux/macOS).
 
 Connexion initiale : `admin` / `admin`. Détails dans le `README.txt` de chaque paquet.
 

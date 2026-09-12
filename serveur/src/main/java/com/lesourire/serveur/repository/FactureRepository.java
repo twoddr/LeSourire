@@ -16,6 +16,10 @@ public interface FactureRepository extends JpaRepository<Facture, Long> {
     /** Dernière facture de l'année (les numéros zéro-remplis trient bien). */
     Optional<Facture> findTopByNumeroStartingWithOrderByNumeroDesc(String prefixe);
 
+    /**
+     * Factures filtrées par statut et période. Nom/prénom du patient étant
+     * chiffrés en base, le filtre par texte se fait en mémoire dans le service.
+     */
     @Query("""
             SELECT f FROM Facture f
             JOIN FETCH f.patient p
@@ -24,15 +28,9 @@ public interface FactureRepository extends JpaRepository<Facture, Long> {
             WHERE (:statut IS NULL OR f.statut = :statut)
               AND (:debut IS NULL OR f.dateFacture >= :debut)
               AND (:fin IS NULL OR f.dateFacture <= :fin)
-              AND (:q = ''
-                   OR LOWER(f.numero) LIKE CONCAT('%', :q, '%')
-                   OR LOWER(p.nom) LIKE CONCAT('%', :q, '%')
-                   OR LOWER(p.prenom) LIKE CONCAT('%', :q, '%')
-                   OR LOWER(p.numeroDossier) LIKE CONCAT('%', :q, '%'))
             ORDER BY f.dateFacture DESC, f.id DESC
             """)
-    List<Facture> rechercher(@Param("q") String q,
-            @Param("statut") StatutFacture statut,
+    List<Facture> rechercher(@Param("statut") StatutFacture statut,
             @Param("debut") LocalDate debut,
             @Param("fin") LocalDate fin);
 

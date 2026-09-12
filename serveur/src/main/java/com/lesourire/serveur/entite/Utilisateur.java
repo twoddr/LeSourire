@@ -4,8 +4,10 @@ import java.time.LocalDateTime;
 
 import com.lesourire.commun.Role;
 import com.lesourire.commun.dto.UtilisateurDTO;
+import com.lesourire.serveur.crypto.ChiffreurTexte;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -28,20 +30,25 @@ public class Utilisateur {
     @Column(name = "mot_de_passe", nullable = false)
     private String motDePasse;
 
-    @Column(nullable = false, length = 100)
+    // -- Identité et coordonnées : chiffrées en base (AES-256-GCM) --
+    @Convert(converter = ChiffreurTexte.class)
+    @Column(nullable = false, length = 512)
     private String nom;
 
-    @Column(length = 100)
+    @Convert(converter = ChiffreurTexte.class)
+    @Column(length = 512)
     private String prenom;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Role role;
 
-    @Column(length = 255)
+    @Convert(converter = ChiffreurTexte.class)
+    @Column(length = 512)
     private String email;
 
-    @Column(length = 30)
+    @Convert(converter = ChiffreurTexte.class)
+    @Column(length = 255)
     private String telephone;
 
     @Column(nullable = false)

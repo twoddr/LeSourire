@@ -18,6 +18,8 @@ import javafx.scene.control.Separator;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -70,7 +72,11 @@ public class PrincipaleVue {
     private Node construireBarreLaterale() {
         Role role = Session.utilisateur().role();
 
-        Label badge = new Label("LS");
+        ImageView logo = new ImageView(new Image(
+                getClass().getResource("/images/logo.png").toExternalForm()));
+        logo.setPreserveRatio(true);
+        logo.setFitWidth(24);
+        StackPane badge = new StackPane(logo);
         badge.getStyleClass().add("badge-logo-petit");
         Label nomApp = new Label("Le Sourire");
         nomApp.getStyleClass().add("sidebar-titre");

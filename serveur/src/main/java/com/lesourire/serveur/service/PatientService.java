@@ -1,6 +1,7 @@
 package com.lesourire.serveur.service;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -49,10 +50,32 @@ public class PatientService {
     @Transactional(readOnly = true)
     public List<PatientDTO> rechercher(String recherche) {
         String q = recherche == null ? "" : recherche.trim().toLowerCase(Locale.FRENCH);
-        List<Patient> patients = patientRepository.rechercher(q);
+        // Nom, prénom et téléphones sont chiffrés en base : le filtrage et le
+        // tri se font en mémoire, sur les valeurs déchiffrées.
+        List<Patient> patients = patientRepository.findByActifTrue().stream()
+                .filter(p -> correspond(p, q))
+                .sorted(Comparator.comparing(Patient::getNom,
+                                Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER))
+                        .thenComparing(Patient::getPrenom,
+                                Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER)))
+                .toList();
         List<PatientDTO> dtos = patients.stream().map(Patient::versDTO).toList();
         renseignerCouverturesActives(dtos);
         return dtos;
+    }
+
+    /** Critères de recherche d'un dossier : nom, prénom, n° de dossier, téléphones. */
+    private static boolean correspond(Patient p, String q) {
+        return q.isEmpty()
+                || contient(p.getNom(), q)
+                || contient(p.getPrenom(), q)
+                || contient(p.getNumeroDossier(), q)
+                || contient(p.getTelephone(), q)
+                || contient(p.getTelephoneWhatsapp(), q);
+    }
+
+    private static boolean contient(String valeur, String q) {
+        return valeur != null && valeur.toLowerCase(Locale.FRENCH).contains(q);
     }
 
     /** Renseigne les noms des tiers payants actifs pour l'affichage en liste. */

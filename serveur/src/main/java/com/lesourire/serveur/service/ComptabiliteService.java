@@ -16,6 +16,7 @@ import com.lesourire.commun.Facturation.Payeur;
 import com.lesourire.commun.dto.EncaissementDTO;
 import com.lesourire.commun.dto.ImpayeDTO;
 import com.lesourire.commun.dto.PaiementDTO;
+import com.lesourire.serveur.crypto.Chiffrement;
 import com.lesourire.serveur.entite.Paiement;
 import com.lesourire.serveur.entite.Patient;
 import com.lesourire.serveur.repository.FactureRepository;
@@ -63,8 +64,10 @@ public class ComptabiliteService {
             dto.factureNumero = (String) ligne[1];
             dto.dateFacture = toLocalDate(ligne[2]);
             dto.dateEcheance = toLocalDate(ligne[3]);
-            String nom = (String) ligne[4];
-            String prenom = (String) ligne[5];
+            // patient_nom/patient_prenom proviennent de la vue SQL : ils sont
+            // chiffrés en base et doivent être déchiffrés avant affichage.
+            String nom = Chiffrement.dechiffrer((String) ligne[4]);
+            String prenom = Chiffrement.dechiffrer((String) ligne[5]);
             dto.patientNom = (nom + " " + (prenom == null ? "" : prenom)).trim();
             dto.payeur = Payeur.valueOf((String) ligne[6]);
             dto.payeurNom = (String) ligne[7];

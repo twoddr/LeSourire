@@ -8,9 +8,11 @@ import java.util.List;
 import com.lesourire.commun.Facturation.StatutFacture;
 import com.lesourire.commun.dto.FactureDTO;
 import com.lesourire.commun.dto.FactureLigneDTO;
+import com.lesourire.serveur.crypto.ChiffreurTexte;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -107,6 +109,7 @@ public class Facture {
     @Column(nullable = false, length = 30)
     private StatutFacture statut = StatutFacture.BROUILLON;
 
+    @Convert(converter = ChiffreurTexte.class)
     @Column(columnDefinition = "TEXT")
     private String notes;
 
