@@ -8,12 +8,49 @@
 set -euo pipefail
 
 # ---------------------------------------------------------------------------
-# Notifications bureau (facultatives) : zenity (progression) puis notify-send.
+# Réouverture dans une console : un double-clic (par ex. Dolphin sous KDE
+# Plasma) exécute le script SANS terminal — l'indicateur animé et les journaux
+# seraient alors invisibles. On rouvre donc automatiquement konsole (ou xterm)
+# pour les rendre visibles. Le marqueur LESOURIRE_DANS_TERMINAL empêche toute
+# relance en boucle ; en SSH/CI (aucun affichage graphique) on ne tente rien.
+# ---------------------------------------------------------------------------
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJET_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+SCRIPT_ASSEMBLEUR="${SCRIPT_DIR}/assembler-executables.sh"
+
+relancer_dans_terminal() {
+    if [ -n "${LESOURIRE_DANS_TERMINAL:-}" ] || [ -t 1 ]; then
+        return 0
+    fi
+    if [ -z "${WAYLAND_DISPLAY:-}" ] && [ -z "${DISPLAY:-}" ]; then
+        return 0
+    fi
+    # La console relance le script puis attend une touche, afin de laisser
+    # l'utilisateur lire l'indicateur et le message de fin.
+    local suite='printf "\nAppuyez sur Entrée pour fermer…"; read -r _'
+    if command -v konsole >/dev/null 2>&1; then
+        exec konsole --workdir "${PROJET_DIR}" -e bash -c \
+            "export LESOURIRE_DANS_TERMINAL=1; \"${SCRIPT_ASSEMBLEUR}\"; ${suite}"
+    fi
+    if command -v xterm >/dev/null 2>&1; then
+        exec xterm -e bash -c \
+            "export LESOURIRE_DANS_TERMINAL=1; \"${SCRIPT_ASSEMBLEUR}\"; ${suite}"
+    fi
+    return 0
+}
+relancer_dans_terminal
+
+# ---------------------------------------------------------------------------
+# Notifications bureau (facultatives). Sous KDE Plasma, kdialog est l'outil
+# natif et souvent le seul présent (zenity et notify-send peuvent manquer).
+# On détecte aussi les sessions Wayland (WAYLAND_DISPLAY), pas seulement X11.
 # En SSH / sans affichage graphique, on se contente de la sortie terminal.
 # ---------------------------------------------------------------------------
 NOTIF_MODE=0
-if [ -n "${DISPLAY:-}" ]; then
-    if command -v zenity >/dev/null 2>&1; then
+if [ -n "${WAYLAND_DISPLAY:-}" ] || [ -n "${DISPLAY:-}" ]; then
+    if command -v kdialog >/dev/null 2>&1; then
+        NOTIF_MODE=3
+    elif command -v zenity >/dev/null 2>&1; then
         NOTIF_MODE=2
     elif command -v notify-send >/dev/null 2>&1; then
         NOTIF_MODE=1
@@ -21,8 +58,56 @@ if [ -n "${DISPLAY:-}" ]; then
 fi
 PROGRESS_PID=""
 
+# ---------------------------------------------------------------------------
+# Indicateur visuel terminal : « spinner » animé + chronomètre, affiché tant
+# que le script travaille. Utile en SSH / sans affichage graphique, où zenity
+# et notify-send ne peuvent rien montrer. Écrit sur stderr et seulement si
+# stderr est un terminal : aucune pollution de stdout ni des redirections/CI.
+# ---------------------------------------------------------------------------
+SPINNER_PID=""
+
+demarrer_indicateur() {
+    local message="$1"
+    if [ ! -t 2 ]; then
+        return 0
+    fi
+    if [ -n "${SPINNER_PID}" ]; then
+        return 0
+    fi
+    (
+        local frames='|/-\' i=0 debut t
+        debut=$(date +%s)
+        while :; do
+            t=$(( $(date +%s) - debut ))
+            printf '\r\033[K  %s  %s  (%02d:%02d)' \
+                "${frames:$((i % 4)):1}" "${message}" $((t / 60)) $((t % 60)) >&2
+            i=$((i + 1))
+            sleep 0.5
+        done
+    ) &
+    SPINNER_PID=$!
+}
+
+arreter_indicateur() {
+    if [ -n "${SPINNER_PID}" ]; then
+        kill "${SPINNER_PID}" 2>/dev/null || true
+        wait "${SPINNER_PID}" 2>/dev/null || true
+        SPINNER_PID=""
+    fi
+    if [ -t 2 ]; then
+        printf '\r\033[K' >&2
+    fi
+}
+
 notifier_debut() {
     case "${NOTIF_MODE}" in
+        3)
+            # kdialog (KDE Plasma) : bulle passive, non bloquante. Le suivi
+            # continu de la progression est assuré par l'indicateur du terminal.
+            kdialog --title "Le Sourire" --passivepopup \
+                "Création des exécutables en cours — suivez la progression dans la console." \
+                20 >/dev/null 2>&1 || true
+            ;;
         2)
             zenity --progress --pulsate --no-cancel \
                 --title="Le Sourire" \
@@ -41,6 +126,11 @@ notifier_succes() {
     [ -n "${PROGRESS_PID}" ] && kill "${PROGRESS_PID}" 2>/dev/null || true
     PROGRESS_PID=""
     case "${NOTIF_MODE}" in
+        3)
+            kdialog --title "Le Sourire" --passivepopup \
+                "Exécutables créés avec succès (lesourire-windows et lesourire-mac-linux)." \
+                15 >/dev/null 2>&1 || true
+            ;;
         2)
             zenity --info --title="Le Sourire" \
                 --text="Exécutables créés avec succès.\n\nLes dossiers lesourire-windows et lesourire-mac-linux sont prêts." \
@@ -57,6 +147,11 @@ notifier_echec() {
     [ -n "${PROGRESS_PID}" ] && kill "${PROGRESS_PID}" 2>/dev/null || true
     PROGRESS_PID=""
     case "${NOTIF_MODE}" in
+        3)
+            kdialog --title "Le Sourire" --passivepopup \
+                "La création des exécutables a échoué — consultez la console pour le détail." \
+                30 >/dev/null 2>&1 || true
+            ;;
         2)
             zenity --error --title="Le Sourire" \
                 --text="La création des exécutables a échoué.\nConsultez le terminal pour le détail." \
@@ -71,11 +166,19 @@ notifier_echec() {
 
 sur_exit() {
     local code=$?
+    arreter_indicateur
     [ -n "${PROGRESS_PID}" ] && kill "${PROGRESS_PID}" 2>/dev/null || true
     PROGRESS_PID=""
     if [ "${code}" -ne 0 ]; then
+        if [ -t 2 ]; then
+            printf '\r\033[K  \342\234\226  Terminé : la création des exécutables a échoué (code %d).\n' \
+                "${code}" >&2
+        fi
         notifier_echec
     else
+        if [ -t 2 ]; then
+            printf '\r\033[K  \342\234\224  Terminé : exécutables créés avec succès.\n' >&2
+        fi
         notifier_succes
     fi
 }
@@ -108,7 +211,9 @@ fi
 
 echo "==> Compilation Maven propre (clean install)"
 notifier_debut
+demarrer_indicateur "Compilation Maven en cours…"
 (cd "${ROOT}" && mvn -q clean install -DskipTests)
+arreter_indicateur
 
 for f in "${COMMUN_JAR}" "${CLIENT_JAR}" "${SERVEUR_JAR}"; do
     if [ ! -f "$f" ]; then
@@ -212,7 +317,7 @@ copier_artefacts() {
 echo "==> Paquet Windows : ${OUT_WIN}"
 mkdir -p "${OUT_WIN}"
 copier_artefacts "${OUT_WIN}"
-cp -f "${PACKAGING}/LIREMOI-windows.txt" "${OUT_WIN}/README.txt"
+cp -f "${PACKAGING}/LisezMoi-windows.txt" "${OUT_WIN}/README.txt"
 cp -f "${PACKAGING}/JRE-A-COPIER-windows.txt" "${OUT_WIN}/JRE-A-COPIER.txt"
 cp -f "${PACKAGING}/1-Demarrer-Serveur.bat" "${OUT_WIN}/"
 cp -f "${PACKAGING}/2-Demarrer-LeSourire.bat" "${OUT_WIN}/"
@@ -240,7 +345,7 @@ cat "${OUT_WIN}/BUILD-INFO.txt"
 echo "==> Paquet Mac/Linux : ${OUT_UNIX}"
 mkdir -p "${OUT_UNIX}"
 copier_artefacts "${OUT_UNIX}"
-cp -f "${PACKAGING}/LIREMOI-unix.txt" "${OUT_UNIX}/README.txt"
+cp -f "${PACKAGING}/LisezMoi-unix.txt" "${OUT_UNIX}/README.txt"
 cp -f "${PACKAGING}/JRE-A-COPIER-unix.txt" "${OUT_UNIX}/JRE-A-COPIER.txt"
 cp -f "${PACKAGING}/runtime-unix.sh" "${OUT_UNIX}/"
 cp -f "${PACKAGING}/1-Demarrer-Serveur.sh" "${OUT_UNIX}/"

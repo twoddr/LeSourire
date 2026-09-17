@@ -8,22 +8,53 @@ public final class Rappels {
 
     /** Raison du rappel. */
     public enum Type {
-        RAPPEL_RDV,     // rappel J-2 avant un rendez-vous
-        REVISITE        // invitation à une revisite après intervention
+        CONFIRMATION_RDV("Confirmation"),
+        RAPPEL_RDV("Rappel"),
+        REVISITE("Revisite");
+
+        private final String libelle;
+
+        Type(String libelle) {
+            this.libelle = libelle;
+        }
+
+        public String getLibelle() {
+            return libelle;
+        }
     }
 
     /** Canal d'envoi du rappel. */
     public enum Canal {
-        EMAIL,
-        WHATSAPP,
-        SMS
+        EMAIL("E-mail"),
+        WHATSAPP("WhatsApp"),
+        SMS("SMS");
+
+        private final String libelle;
+
+        Canal(String libelle) {
+            this.libelle = libelle;
+        }
+
+        public String getLibelle() {
+            return libelle;
+        }
     }
 
     /** État d'un rappel programmé. */
     public enum Statut {
-        EN_ATTENTE,
-        ENVOYE,
-        ECHEC,
-        ANNULE
+        EN_ATTENTE("En attente"),
+        ENVOYE("Envoyé"),
+        ECHEC("Échec"),
+        ANNULE("Annulé");
+
+        private final String libelle;
+
+        Statut(String libelle) {
+            this.libelle = libelle;
+        }
+
+        public String getLibelle() {
+            return libelle;
+        }
     }
 }

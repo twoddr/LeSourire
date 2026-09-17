@@ -15,11 +15,15 @@ import javafx.stage.Stage;
 /** Application de bureau du cabinet Le Sourire. */
 public class LeSourireClient extends Application {
 
+    /** Instance courante : sert à ouvrir les liens externes (WhatsApp, e-mail). */
+    private static LeSourireClient instance;
+
     private Stage fenetre;
     private Scene scene;
 
     @Override
     public void start(Stage stage) {
+        instance = this;
         this.fenetre = stage;
         Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
 
@@ -107,5 +111,27 @@ public class LeSourireClient extends Application {
         // Avant tout PDF : pas de scan des polices système (TeX Live, etc.)
         com.lesourire.client.impression.FacturePdf.preparerEnvironnementPdf();
         launch(args);
+    }
+
+    /**
+     * Ouvre une adresse dans le navigateur / client de messagerie du poste.
+     *
+     * <p>Sert aux envois assistés (WhatsApp {@code wa.me}, {@code mailto:}) :
+     * c'est le système du poste qui prend le relais, l'application n'a besoin
+     * d'aucun compte supplémentaire.</p>
+     *
+     * @return {@code false} si le poste ne sait pas ouvrir de lien (à charge
+     *         de l'appelant d'afficher l'adresse à recopier)
+     */
+    public static boolean ouvrirLien(String url) {
+        if (url == null || url.isBlank() || instance == null) {
+            return false;
+        }
+        try {
+            instance.getHostServices().showDocument(url);
+            return true;
+        } catch (RuntimeException e) {
+            return false;
+        }
     }
 }

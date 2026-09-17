@@ -71,6 +71,7 @@ public class AgendaVue {
     private final AgendaGrille grille = new AgendaGrille();
     private final ListView<RdvDTO> salleAttente = new ListView<>();
     private final VBox panneauSalle = new VBox();
+    private RappelsPanneau rappels;
     private final Label labelStatut = new Label();
     private final Button btnPrec = new Button();
     private final Button btnSuiv = new Button();
@@ -196,8 +197,18 @@ public class AgendaVue {
         titreSalle.getStyleClass().add("sous-titre-section");
         construireSalleAttente();
         VBox.setVgrow(salleAttente, Priority.ALWAYS);
-        panneauSalle.getChildren().setAll(titreSalle, salleAttente);
-        panneauSalle.setPrefWidth(260);
+
+        // Notifications patients : confirmations et rappels J-2 en attente
+        // de traitement (SMS automatique, WhatsApp / e-mail assistés).
+        rappels = new RappelsPanneau(this::afficherErreur);
+        Label titreRappels = new Label("Notifications à envoyer");
+        titreRappels.getStyleClass().add("sous-titre-section");
+        VBox.setVgrow(rappels.getRacine(), Priority.ALWAYS);
+
+        panneauSalle.getChildren().setAll(titreSalle, salleAttente, titreRappels,
+                rappels.getRacine());
+        panneauSalle.setSpacing(10);
+        panneauSalle.setPrefWidth(300);
         panneauSalle.getStyleClass().add("panneau-salle-attente");
         panneauSalle.setPadding(new Insets(12));
 
@@ -303,6 +314,7 @@ public class AgendaVue {
                     labelStatut.setText(liste.size() + " rendez-vous"
                             + (Session.estModeDemonstration()
                                     ? " — mode démonstration, rien n'est enregistré" : ""));
+                    rappels.charger();
                 },
                 e -> {
                     labelStatut.setText("");
@@ -384,6 +396,7 @@ public class AgendaVue {
     private void afficherErreur(String entete, Exception e) {
         Alert alerte = new Alert(Alert.AlertType.ERROR, e.getMessage(), ButtonType.OK);
         alerte.setHeaderText(entete);
-        Dialogues.afficherSansResultat(alerte, racine.getScene().getWindow());
+        Dialogues.afficherSansResultat(alerte,
+                racine.getScene() == null ? null : racine.getScene().getWindow());
     }
 }

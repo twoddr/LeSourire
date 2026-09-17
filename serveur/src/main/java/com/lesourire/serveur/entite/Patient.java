@@ -3,12 +3,15 @@ package com.lesourire.serveur.entite;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import com.lesourire.commun.CanalNotification;
 import com.lesourire.commun.dto.PatientDTO;
 import com.lesourire.serveur.crypto.ChiffreurTexte;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -54,6 +57,14 @@ public class Patient {
     @Convert(converter = ChiffreurTexte.class)
     @Column(length = 512)
     private String email;
+
+    // -- Notifications : canal préféré + accord du patient pour être rappelé --
+    @Enumerated(EnumType.STRING)
+    @Column(name = "canal_notification", nullable = false, length = 20)
+    private CanalNotification canalNotification = CanalNotification.AUTO;
+
+    @Column(name = "consentement_rappel", nullable = false)
+    private boolean consentementRappel = true;
 
     @Convert(converter = ChiffreurTexte.class)
     @Column(length = 512)
@@ -118,6 +129,8 @@ public class Patient {
         dto.telephone = telephone;
         dto.telephoneWhatsapp = telephoneWhatsapp;
         dto.email = email;
+        dto.canalNotification = canalNotification == null ? CanalNotification.AUTO : canalNotification;
+        dto.consentementRappel = consentementRappel;
         dto.adresse = adresse;
         dto.quartier = quartier;
         dto.ville = ville;
@@ -141,6 +154,9 @@ public class Patient {
         this.telephone = dto.telephone;
         this.telephoneWhatsapp = dto.telephoneWhatsapp;
         this.email = dto.email;
+        this.canalNotification = dto.canalNotification == null
+                ? CanalNotification.AUTO : dto.canalNotification;
+        this.consentementRappel = dto.consentementRappel;
         this.adresse = dto.adresse;
         this.quartier = dto.quartier;
         this.ville = dto.ville;
@@ -184,6 +200,22 @@ public class Patient {
 
     public String getEmail() {
         return email;
+    }
+
+    public CanalNotification getCanalNotification() {
+        return canalNotification == null ? CanalNotification.AUTO : canalNotification;
+    }
+
+    public boolean isConsentementRappel() {
+        return consentementRappel;
+    }
+
+    /** Numéro à utiliser pour joindre le patient sur WhatsApp. */
+    public String numeroWhatsapp() {
+        if (telephoneWhatsapp != null && !telephoneWhatsapp.isBlank()) {
+            return telephoneWhatsapp;
+        }
+        return telephone;
     }
 
     public String nomComplet() {

@@ -34,8 +34,12 @@ Premier démarrage (PC principal / serveur)
 Un seul PC
 ----------
 Vous pouvez utiliser ./ToutDemarrer.sh :
-cela lance le serveur en arrière-plan, attend qu'il soit prêt,
-puis lance le client. Arrêtez le serveur avec ./Arreter-Serveur.sh.
+cela lance le serveur en arrière-plan, affiche un indicateur pendant
+l'attente, puis lance le client — uniquement lorsque le serveur est prêt
+(même si le premier démarrage, migrations comprises, prend du temps).
+Arrêtez le serveur avec ./Arreter-Serveur.sh.
+La détection du démarrage utilise « curl » (ou « nc » à défaut) :
+installez « curl » si aucun des deux n'est présent.
 
 Postes clients supplémentaires
 ------------------------------

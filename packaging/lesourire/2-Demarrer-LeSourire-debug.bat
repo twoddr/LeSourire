@@ -17,6 +17,9 @@ if not exist "%JAVA_HOME%\bin\java.exe" (
     exit /b 1
 )
 
+echo Lancement du client Le Sourire (mode debug)...
+echo.
+
 "%JAVA_HOME%\bin\java.exe" -Dfile.encoding=UTF-8 --module-path "%MODULE_PATH%" --module com.lesourire.client/com.lesourire.client.LeSourireClient
 echo.
 echo Code sortie : %ERRORLEVEL%

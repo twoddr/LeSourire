@@ -22,6 +22,7 @@ import com.lesourire.serveur.entite.Patient;
 import com.lesourire.serveur.entite.Rappel;
 import com.lesourire.serveur.entite.Rdv;
 import com.lesourire.serveur.entite.Utilisateur;
+import com.lesourire.serveur.notification.NotificationService;
 import com.lesourire.serveur.repository.ParametreRepository;
 import com.lesourire.serveur.repository.PatientRepository;
 import com.lesourire.serveur.repository.RappelRepository;
@@ -43,16 +44,19 @@ public class RdvService {
     private final UtilisateurRepository utilisateurRepository;
     private final ParametreRepository parametreRepository;
     private final AuditService auditService;
+    private final NotificationService notificationService;
 
     public RdvService(RdvRepository rdvRepository, RappelRepository rappelRepository,
             PatientRepository patientRepository, UtilisateurRepository utilisateurRepository,
-            ParametreRepository parametreRepository, AuditService auditService) {
+            ParametreRepository parametreRepository, AuditService auditService,
+            NotificationService notificationService) {
         this.rdvRepository = rdvRepository;
         this.rappelRepository = rappelRepository;
         this.patientRepository = patientRepository;
         this.utilisateurRepository = utilisateurRepository;
         this.parametreRepository = parametreRepository;
         this.auditService = auditService;
+        this.notificationService = notificationService;
     }
 
     @Transactional(readOnly = true)
@@ -98,6 +102,7 @@ public class RdvService {
         rdv.setCreePar(auditService.utilisateurCourant(auteur));
         rdv = rdvRepository.save(rdv);
 
+        programmerConfirmation(rdv);
         programmerRappel(rdv);
 
         auditService.enregistrer(auteur, "CREATION", "rdv", rdv.getId(),
@@ -152,33 +157,55 @@ public class RdvService {
     }
 
     private void annulerRappelsEnAttente(Long rdvId) {
-        rappelRepository.annulerEnAttentePourRdv(rdvId, Rappels.Type.RAPPEL_RDV,
+        // Un rendez-vous déplacé ou annulé ne doit plus rien annoncer : la
+        // confirmation comme le rappel J-2 deviennent caducs.
+        rappelRepository.annulerToutEnAttentePourRdv(rdvId,
                 Rappels.Statut.ANNULE, Rappels.Statut.EN_ATTENTE);
     }
 
+    /** Rappel J-2 (ou J-N, cf. paramètre {@code rappel.jours_avant_rdv}). */
     private void programmerRappel(Rdv rdv) {
         int jours = joursAvantRappel();
         LocalDateTime datePrevue = rdv.getDebut().minusDays(jours);
         if (!datePrevue.isAfter(LocalDateTime.now())) {
             return;
         }
-
         Patient patient = rdv.getPatient();
         CanalDest destinataire = choisirDestinataire(patient);
         if (destinataire == null) {
             return;
         }
+        enregistrer(rdv, Rappels.Type.RAPPEL_RDV, destinataire, datePrevue,
+                notificationService.messageRappel(patient.getPrenom(), rdv.getDebut()));
+    }
 
+    /**
+     * Confirmation envoyée sans délai dès la prise de rendez-vous : le patient
+     * sait tout de suite que le créneau est réservé. Le message part avec la
+     * prochaine passe du planificateur (moins d'une minute).
+     */
+    private void programmerConfirmation(Rdv rdv) {
+        Patient patient = rdv.getPatient();
+        CanalDest destinataire = choisirDestinataire(patient);
+        if (destinataire == null) {
+            return;
+        }
+        enregistrer(rdv, Rappels.Type.CONFIRMATION_RDV, destinataire, LocalDateTime.now(),
+                notificationService.messageConfirmation(patient.getPrenom(), rdv.getDebut(),
+                        rdv.getPraticien().versDTO().nomComplet()));
+    }
+
+    private void enregistrer(Rdv rdv, Rappels.Type type, CanalDest destinataire,
+            LocalDateTime datePrevue, String contenu) {
         Rappel rappel = new Rappel();
-        rappel.setPatient(patient);
+        rappel.setPatient(rdv.getPatient());
         rappel.setRdv(rdv);
-        rappel.setType(Rappels.Type.RAPPEL_RDV);
+        rappel.setType(type);
         rappel.setCanal(destinataire.canal());
         rappel.setDatePrevue(datePrevue);
         rappel.setStatut(Rappels.Statut.EN_ATTENTE);
         rappel.setDestinataire(destinataire.adresse());
-        rappel.setContenu("Rappel de rendez-vous le " + rdv.getDebut().format(FORMAT_HEURE)
-                + " — Cabinet Dentaire Le Sourire");
+        rappel.setContenu(contenu);
         rappelRepository.save(rappel);
     }
 
@@ -194,17 +221,47 @@ public class RdvService {
                 .orElse(2);
     }
 
+    /**
+     * Canal et adresse de notification du patient.
+     *
+     * <p>Le SMS vient en premier : c'est le canal réellement lu au Cameroun et
+     * le seul que le serveur sait envoyer tout seul. WhatsApp prend le relais
+     * (envoi assisté par le secrétariat) et l'e-mail reste le dernier recours.
+     * La préférence saisie sur la fiche patient est respectée ; si le moyen
+     * correspondant est absent, on retombe sur l'ordre par défaut.</p>
+     *
+     * <p>Aucun rappel n'est programmé si le patient a refusé d'être notifié.</p>
+     */
     private static CanalDest choisirDestinataire(Patient patient) {
-        if (patient.getEmail() != null && !patient.getEmail().isBlank()) {
-            return new CanalDest(Rappels.Canal.EMAIL, patient.getEmail().trim());
+        if (!patient.isConsentementRappel()) {
+            return null;
         }
-        if (patient.getTelephoneWhatsapp() != null && !patient.getTelephoneWhatsapp().isBlank()) {
-            return new CanalDest(Rappels.Canal.WHATSAPP, patient.getTelephoneWhatsapp().trim());
-        }
-        if (patient.getTelephone() != null && !patient.getTelephone().isBlank()) {
-            return new CanalDest(Rappels.Canal.SMS, patient.getTelephone().trim());
+        String telephone = nonVide(patient.getTelephone());
+        String whatsapp = nonVide(patient.numeroWhatsapp());
+        String email = nonVide(patient.getEmail());
+
+        CanalDest parSms = new CanalDest(Rappels.Canal.SMS, telephone);
+        CanalDest parWhatsapp = new CanalDest(Rappels.Canal.WHATSAPP, whatsapp);
+        CanalDest parEmail = new CanalDest(Rappels.Canal.EMAIL, email);
+
+        return switch (patient.getCanalNotification()) {
+            case SMS, AUTO -> premier(parSms, parWhatsapp, parEmail);
+            case WHATSAPP -> premier(parWhatsapp, parSms, parEmail);
+            case EMAIL -> premier(parEmail, parSms, parWhatsapp);
+        };
+    }
+
+    private static CanalDest premier(CanalDest... candidats) {
+        for (CanalDest candidat : candidats) {
+            if (candidat.adresse() != null) {
+                return candidat;
+            }
         }
         return null;
+    }
+
+    private static String nonVide(String valeur) {
+        return valeur == null || valeur.isBlank() ? null : valeur.trim();
     }
 
     private void validerCreneau(RdvDTO dto) {

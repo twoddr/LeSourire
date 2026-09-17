@@ -33,6 +33,27 @@ lesourire:
     cle: ${LESOURIRE_CHIFFREMENT_CLE:}
     fichier: ${LESOURIRE_CHIFFREMENT_FICHIER:fichiers/cle-chiffrement.key}
 
+  # Notifications aux patients (confirmations de RDV, rappels J-2).
+  # Les réglages métier (activation, fournisseur, expéditeur…) vivent dans la
+  # table `parametre` et se modifient depuis Administration → Paramètres.
+  notification:
+    # Boucle du planificateur : toutes les minutes, premier passage après 30 s.
+    intervalle-ms: ${LESOURIRE_NOTIFICATION_INTERVALLE_MS:60000}
+    delai-initial-ms: ${LESOURIRE_NOTIFICATION_DELAI_INITIAL_MS:30000}
+    # Pause entre deux SMS : l'API Orange accepte 5 envois par seconde.
+    pause-ms: ${LESOURIRE_NOTIFICATION_PAUSE_MS:250}
+    orange:
+      # Identifiants de l'application déclarée sur developer.orange.com.
+      # JAMAIS en base : la table `parametre` n'est pas chiffrée.
+      client-id: ${LESOURIRE_ORANGE_CLIENT_ID:}
+      client-secret: ${LESOURIRE_ORANGE_CLIENT_SECRET:}
+      # Adresse d'expédition contractualisée : nom whitelisté (« CABINET LE
+      # SOURIRE ») ou, si vous envoyez depuis une carte SIM Orange,
+      # « tel:+237XXXXXXXXX ». Vide = paramètre `notification.nom_expediteur`.
+      expediteur: ${LESOURIRE_ORANGE_EXPEDITEUR:}
+      url-token: ${LESOURIRE_ORANGE_URL_TOKEN:https://api.orange.com/oauth/v3/token}
+      url-envoi: ${LESOURIRE_ORANGE_URL_ENVOI:https://api.orange.com/smsmessaging/v1/outbound/%s/requests}
+
 logging:
   file:
     # Renseigné par les lanceurs (LESOURIRE_LOG) : sans valeur, pas de fichier.

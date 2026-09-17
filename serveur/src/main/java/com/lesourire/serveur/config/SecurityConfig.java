@@ -52,7 +52,8 @@ public class SecurityConfig {
                                                 .hasAnyRole("DENTISTE", "ASSISTANT")
                                                 .requestMatchers("/api/patients/**", "/api/assureurs/**",
                                                                 "/api/societes/**",
-                                                                "/api/rdv/**", "/api/praticiens/**")
+                                                                "/api/rdv/**", "/api/praticiens/**",
+                                                                "/api/rappels/**")
                                                 .hasAnyRole("DENTISTE", "ASSISTANT", "SECRETAIRE", "ADMINISTRATEUR")
                                                 .anyRequest().authenticated())
                                 .httpBasic(withDefaults());

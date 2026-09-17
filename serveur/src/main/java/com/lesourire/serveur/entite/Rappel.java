@@ -3,6 +3,7 @@ package com.lesourire.serveur.entite;
 import java.time.LocalDateTime;
 
 import com.lesourire.commun.Rappels;
+import com.lesourire.commun.dto.RappelDTO;
 import com.lesourire.serveur.crypto.ChiffreurTexte;
 
 import jakarta.persistence.Column;
@@ -52,6 +53,9 @@ public class Rappel {
     @Column(nullable = false, length = 20)
     private Rappels.Statut statut = Rappels.Statut.EN_ATTENTE;
 
+    @Column(nullable = false)
+    private int tentatives;
+
     @Convert(converter = ChiffreurTexte.class)
     @Column(length = 512)
     private String destinataire;
@@ -72,6 +76,31 @@ public class Rappel {
 
     public Long getId() {
         return id;
+    }
+
+    /** Vue échangée avec le client ; le lien d'envoi assisté est ajouté par le service. */
+    public RappelDTO versDTO() {
+        RappelDTO dto = new RappelDTO();
+        dto.id = id;
+        if (patient != null) {
+            dto.patientId = patient.getId();
+            dto.patientNom = patient.nomComplet();
+            dto.patientTelephone = patient.getTelephone();
+        }
+        if (rdv != null) {
+            dto.rdvId = rdv.getId();
+            dto.rdvDebut = rdv.getDebut();
+        }
+        dto.type = type;
+        dto.canal = canal;
+        dto.statut = statut;
+        dto.tentatives = tentatives;
+        dto.datePrevue = datePrevue;
+        dto.dateEnvoi = dateEnvoi;
+        dto.destinataire = destinataire;
+        dto.contenu = contenu;
+        dto.messageErreur = messageErreur;
+        return dto;
     }
 
     public Patient getPatient() {
@@ -136,5 +165,29 @@ public class Rappel {
 
     public void setContenu(String contenu) {
         this.contenu = contenu;
+    }
+
+    public LocalDateTime getDateEnvoi() {
+        return dateEnvoi;
+    }
+
+    public void setDateEnvoi(LocalDateTime dateEnvoi) {
+        this.dateEnvoi = dateEnvoi;
+    }
+
+    public String getMessageErreur() {
+        return messageErreur;
+    }
+
+    public void setMessageErreur(String messageErreur) {
+        this.messageErreur = messageErreur;
+    }
+
+    public int getTentatives() {
+        return tentatives;
+    }
+
+    public void setTentatives(int tentatives) {
+        this.tentatives = tentatives;
     }
 }

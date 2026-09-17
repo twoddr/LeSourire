@@ -68,7 +68,8 @@ Configuration du serveur par variables d'environnement :
 `LESOURIRE_BD_URL`, `LESOURIRE_BD_UTILISATEUR`, `LESOURIRE_BD_MOT_DE_PASSE`,
 `LESOURIRE_PORT` (défaut : `8420`), `LESOURIRE_CHIFFREMENT_CLE` (clé de
 chiffrement en base64) et `LESOURIRE_CHIFFREMENT_FICHIER` (défaut :
-`fichiers/cle-chiffrement.key`).
+`fichiers/cle-chiffrement.key`). Pour l'envoi réel des SMS, voir
+`LESOURIRE_ORANGE_*` dans « Notifications patients » ci-dessous.
 
 ## Base de données
 
@@ -98,7 +99,11 @@ par Flyway :
   coordonnées des utilisateurs, n° d'assuré) et suppression des index devenus
   inutiles (le tri/recherche se fait en mémoire, cf. ci-dessous) ;
 - `V9__mot_de_passe_admin_bcrypt.sql` — le compte initial n'est plus stocké avec
-  `{noop}` mais sous forme d'empreinte `{bcrypt}`.
+  `{noop}` mais sous forme d'empreinte `{bcrypt}` ;
+- `V10__notifications_patients.sql` — notifications patients : canal préféré et
+  consentement sur la fiche patient, nouveau type de rappel `CONFIRMATION_RDV`
+  (envoyé dès la prise de rendez-vous) et paramètres `notification.*` (voir
+  « Notifications patients » ci-dessous).
 
 ### Chiffrement des données sensibles
 
@@ -120,6 +125,54 @@ Comme le nom, le prénom et les téléphones sont chiffrés, la recherche patien
 utilisateur / facture ne se fait plus en SQL mais **en mémoire**, sur les
 valeurs déchiffrées (volumes d'un cabinet : largement suffisant).
 
+### Notifications patients (SMS, WhatsApp, e-mail)
+
+Au Cameroun le SMS est le canal réellement lu : c'est donc lui qui part
+**automatiquement**. Le fournisseur retenu est l'API **SMS Cameroon 2.0**
+d'Orange (`developer.orange.com`), qui couvre tous les opérateurs (MTN et
+Orange) et dont les crédits s'achètent par paquets, payés par Orange Money ou
+avec le crédit d'une carte SIM Orange.
+
+Le parcours est le suivant :
+
+1. à l'enregistrement d'un rendez-vous, une **confirmation** part vers le
+   patient (moins d'une minute après, le temps d'une passe du planificateur) ;
+2. **la veille à J-2** (paramètre `rappel.jours_avant_rdv`), un rappel est
+   envoyé ; un rendez-vous annulé ou déplacé annule automatiquement les envois
+   encore en attente ;
+3. rien n'est programmé si la case « le patient accepte d'être prévenu » est
+   décochée sur sa fiche.
+
+Le canal se règle **par patient** (champ « Rappels par ») : `Automatique`
+(SMS si un numéro est renseigné, sinon WhatsApp, sinon e-mail), `SMS`,
+`WhatsApp` ou `E-mail`.
+
+WhatsApp et l'e-mail sont des canaux **assistés** : le serveur prépare le
+message et un lien `wa.me` / `mailto:`, le secrétariat clique puis confirme
+l'envoi. Ils ne demandent donc aucun compte Meta ni serveur SMTP. Le panneau
+**« Notifications à envoyer »** (colonne de droite de l'Agenda) liste les
+envois restants, permet de forcer un envoi, de marquer un envoi assisté comme
+fait ou de l'annuler.
+
+Réglages (Administration ▸ Paramètres) : `notification.active` (interrupteur
+général des envois automatiques, `false` par défaut), `notification.fournisseur`
+(`orange` pour l'envoi réel, `journal` pour simuler en écrivant dans le journal
+du serveur), `notification.indicatif_pays`, `notification.nom_expediteur` et
+`notification.max_tentatives`. Un envoi qui échoue est retenté 15 minutes plus
+tard, jusqu'à ce nombre de tentatives, puis passe en `ECHEC` avec le motif
+affiché.
+
+Les identifiants Orange (`LESOURIRE_ORANGE_CLIENT_ID`,
+`LESOURIRE_ORANGE_CLIENT_SECRET`, `LESOURIRE_ORANGE_EXPEDITEUR`) passent
+uniquement par l'environnement du serveur (voir
+`packaging/lesourire/serveur/lesourire-serveur.conf.sh|.bat`) : la table
+`parametre` n'étant pas chiffrée, un secret n'a rien à y faire.
+
+Points de vigilance : l'API Orange accepte **5 SMS par seconde** (le
+planificateur temporise donc entre deux envois) ; un SMS au-delà de 160
+caractères est facturé en plusieurs parties (les modèles livrés tiennent en un
+seul) ; l'API exige un accès Internet depuis le serveur du cabinet.
+
 ### Points de sécurité à connaître (bêta)
 
 - L'API utilise **HTTP Basic sans TLS** : les identifiants et les réponses
@@ -133,7 +186,7 @@ Toute évolution du schéma = un nouveau fichier `V<n>__description.sql`,
 appliqué automatiquement chez le client à la mise à jour du serveur.
 
 Pour créer la base **sans passer par le serveur** (import direct MariaDB) :
-`scripts/lesourire_complet.sql` contient tout le schéma V1→V9, les données
+`scripts/lesourire_complet.sql` contient tout le schéma V1→V10, les données
 initiales et l'historique Flyway (le serveur démarre dessus sans rien rejouer).
 
 ## Feuille de route
@@ -146,7 +199,8 @@ initiales et l'historique Flyway (le serveur démarre dessus sans rien rejouer).
 | 4     | Facturation (actes D/Z, remises, quotes-parts, paiements)           | ✔    |
 | 5     | Stock (articles, fournisseurs, alertes)                             | ✔    |
 | 6a    | Administration (utilisateurs, tarifaire, paramètres, sauvegardes)   | ✔    |
-| 6b    | Tableau de bord enrichi + comptabilité / envoi des rappels          |      |
+| 6b    | Envoi des rappels (SMS Orange automatique, WhatsApp/e-mail assistés) | ✔    |
+| 6c    | Tableau de bord enrichi + comptabilité                              |      |
 | 7     | Installeur Windows (jpackage/MSI), service Windows, mises à jour    |      |
 
 ## Déploiement (bêta, style Labos)
@@ -158,9 +212,21 @@ Deux paquets « zip + double-clic / scripts », sans MSI pour l’instant.
 ./scripts/assembler-executables.sh
 ```
 
-Si un bureau est disponible, le script affiche une fenêtre de progression
-(`zenity`) ou une notification (`notify-send`) et signale la fin — ou l'échec.
-En SSH / sans affichage graphique, il se contente de la sortie terminal.
+Si un bureau est disponible, le script signale le début et la fin (succès ou
+échec) par une notification : `kdialog` sous **KDE Plasma** (natif), sinon
+`zenity` ou `notify-send` — y compris en session **Wayland**.
+En complément — et notamment en SSH / sans affichage graphique — il affiche
+dans le terminal un indicateur animé (`| / - \` + chronomètre) pendant la
+compilation, puis un message de fin clair (`✔ Terminé` ou `✖ Terminé … échec`).
+Cet indicateur n'apparaît que sur un vrai terminal : en redirection ou en CI,
+la sortie standard et l'erreur restent propres.
+
+**Lancement par double-clic (KDE Plasma / Dolphin)** : un double-clic n'associe
+aucun terminal ; le script **ouvre alors automatiquement une console** (Konsole,
+sinon `xterm`) où l'indicateur et les journaux restent visibles, et attend une
+touche avant de fermer. La relance ne peut pas boucler (marqueur
+`LESOURIRE_DANS_TERMINAL`). Les lanceurs Unix du paquet client
+(`ToutDemarrer.sh`) appliquent le même mécanisme.
 
 Résultat :
 - `out/executables/lesourire-windows/` — `.bat`, JavaFX Windows, emplacement `jre-windows/`
@@ -172,10 +238,13 @@ Sur le PC du cabinet :
 3. Vérifier `serveur/lesourire-serveur.conf.*` (BD, port 8420)
 4. `1-Demarrer-Serveur` puis `2-Demarrer-LeSourire` — ou `ToutDemarrer`
 
-`ToutDemarrer` lance le serveur en arrière-plan (fenêtre masquée), attend
-qu'il réponde sur `/api/systeme/statut`, puis ouvre le client. Les logs du
-serveur sont dans `serveur/logs/lesourire-serveur.log` ; pour l'arrêter,
-utiliser `Arreter-Serveur` (`.bat` sous Windows, `.sh` sous Linux/macOS).
+`ToutDemarrer` lance le serveur en arrière-plan (fenêtre masquée), affiche un
+indicateur animé pendant l'attente, et **n'ouvre le client qu'une fois le
+serveur prêt** (réponse sur `/api/systeme/statut`, migrations Flyway comprises).
+La détection utilise `curl` (ou `nc` à défaut) ; si aucun des deux n'est
+présent, le client n'est pas lancé et un message explique la marche à suivre.
+Les logs du serveur sont dans `serveur/logs/lesourire-serveur.log` ; pour
+l'arrêter, utiliser `Arreter-Serveur` (`.bat` sous Windows, `.sh` sous Linux/macOS).
 
 Connexion initiale : `admin` / `admin`. Détails dans le `README.txt` de chaque paquet.
 

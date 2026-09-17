@@ -19,6 +19,9 @@ fi
 
 MODULE_PATH="${CLIENT_HOME}:${CLIENT_HOME}/lib:${JFX_DIR}"
 
+echo "Lancement du client Le Sourire (mode debug)..."
+echo
+
 "${JAVA_HOME}/bin/java" \
     -Dfile.encoding=UTF-8 \
     --module-path "${MODULE_PATH}" \

@@ -80,6 +80,16 @@
     -fx-font-size: 13px;
 }
 
+.label-succes {
+    -fx-text-fill: #15803d;
+    -fx-font-size: 13px;
+}
+
+.label-info {
+    -fx-text-fill: #6b7280;
+    -fx-font-size: 13px;
+}
+
 .lien-demo {
     -fx-font-size: 12px;
     -fx-text-fill: #6b7280;

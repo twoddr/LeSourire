@@ -30,6 +30,8 @@ fi
 
 mkdir -p "${LOG_DIR}"
 
+echo "Le client ne doit être lancé qu'une fois le serveur prêt à répondre."
+
 if [ "${LESOURIRE_SERVEUR_FOND:-0}" = "1" ]; then
     # Mode arrière-plan (utilisé par ToutDemarrer.sh) : console invisible,
     # logs dans un fichier, PID mémorisé pour Arreter-Serveur.sh.

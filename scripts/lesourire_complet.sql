@@ -1,11 +1,11 @@
 -- ============================================================================
--- LE SOURIRE - Base de données complète (schéma V1 à V9 + données initiales)
+-- LE SOURIRE - Base de données complète (schéma V1 à V10 + données initiales)
 -- ----------------------------------------------------------------------------
 -- Import :   mariadb -u root -p < lesourire_complet.sql
 --            (le fichier crée lui-même la base `lesourire`)
 --
 -- Ce dump contient la table flyway_schema_history avec les sommes de contrôle
--- des migrations V1 à V9 : le serveur démarrera dessus sans rien rejouer.
+-- des migrations V1 à V10 : le serveur démarrera dessus sans rien rejouer.
 --
 -- Les données sensibles (identité et dossier médical des patients, coordonnées
 -- des utilisateurs) sont chiffrées par l'application à l'écriture : ce dump ne
@@ -406,7 +406,8 @@ INSERT INTO `flyway_schema_history` VALUES
 (6,'6','recreer triggers stock','SQL','V6__recreer_triggers_stock.sql',-973994028,'admin','2026-09-12 21:37:29',29,1),
 (7,'7','recreer definer paiement couverture','SQL','V7__recreer_definer_paiement_couverture.sql',-549135522,'admin','2026-09-12 21:37:29',91,1),
 (8,'8','chiffrement donnees sensibles','SQL','V8__chiffrement_donnees_sensibles.sql',1427343996,'admin','2026-09-12 21:37:29',129,1),
-(9,'9','mot de passe admin bcrypt','SQL','V9__mot_de_passe_admin_bcrypt.sql',513412879,'admin','2026-09-12 21:37:29',4,1);
+(9,'9','mot de passe admin bcrypt','SQL','V9__mot_de_passe_admin_bcrypt.sql',513412879,'admin','2026-09-12 21:37:29',4,1),
+(10,'10','notifications patients','SQL','V10__notifications_patients.sql',-1962494894,'admin','2026-09-12 21:37:29',45,1);
 /*!40000 ALTER TABLE `flyway_schema_history` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;
@@ -719,6 +720,11 @@ INSERT INTO `parametre` VALUES
 ('cabinet.nom','Cabinet Dentaire Le Sourire','Nom affiché sur les documents','2026-09-12 23:37:29'),
 ('cabinet.praticien','Docteur Nadine TOWE','Praticien principal','2026-09-12 23:37:29'),
 ('cabinet.telephone','(237) 233 431 411','Téléphone du cabinet','2026-09-12 23:37:29'),
+('notification.active','false','Activer l''envoi automatique des notifications (true/false)','2026-09-12 23:37:29'),
+('notification.fournisseur','journal','Fournisseur SMS : orange (réel) ou journal (journalisé, test)','2026-09-12 23:37:29'),
+('notification.indicatif_pays','+237','Indicatif téléphonique du pays (Cameroun)','2026-09-12 23:37:29'),
+('notification.max_tentatives','3','Nombre maximal de tentatives d''envoi d''un rappel','2026-09-12 23:37:29'),
+('notification.nom_expediteur','CABINET LE SOURIRE','Nom d''expéditeur des SMS (whitelist opérateur)','2026-09-12 23:37:29'),
 ('rappel.heure_envoi','09:00','Heure d\'envoi des rappels du jour','2026-09-12 23:37:29'),
 ('rappel.jours_avant_rdv','2','Nombre de jours avant RDV pour le rappel','2026-09-12 23:37:29'),
 ('sauvegarde.dossier','sauvegardes','Dossier des sauvegardes de la BD','2026-09-12 23:37:29'),
@@ -749,6 +755,8 @@ CREATE TABLE `patient` (
   `telephone` varchar(255) DEFAULT NULL,
   `telephone_whatsapp` varchar(255) DEFAULT NULL,
   `email` varchar(512) DEFAULT NULL,
+  `canal_notification` varchar(20) NOT NULL DEFAULT 'AUTO',
+  `consentement_rappel` tinyint(1) NOT NULL DEFAULT 1,
   `adresse` varchar(512) DEFAULT NULL,
   `quartier` varchar(512) DEFAULT NULL,
   `ville` varchar(512) DEFAULT NULL,
@@ -767,7 +775,8 @@ CREATE TABLE `patient` (
   UNIQUE KEY `uq_patient_numero_dossier` (`numero_dossier`),
   KEY `fk_patient_createur` (`cree_par`),
   CONSTRAINT `fk_patient_createur` FOREIGN KEY (`cree_par`) REFERENCES `utilisateur` (`id`),
-  CONSTRAINT `ck_patient_sexe` CHECK (`sexe` in ('M','F'))
+  CONSTRAINT `ck_patient_sexe` CHECK (`sexe` in ('M','F')),
+  CONSTRAINT `ck_patient_canal_notification` CHECK (`canal_notification` in ('AUTO','SMS','WHATSAPP','EMAIL'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -936,6 +945,7 @@ CREATE TABLE `rappel` (
   `date_prevue` datetime NOT NULL,
   `date_envoi` datetime DEFAULT NULL,
   `statut` varchar(20) NOT NULL DEFAULT 'EN_ATTENTE',
+  `tentatives` int(11) NOT NULL DEFAULT 0,
   `destinataire` varchar(512) DEFAULT NULL,
   `contenu` text DEFAULT NULL,
   `message_erreur` text DEFAULT NULL,
@@ -947,7 +957,7 @@ CREATE TABLE `rappel` (
   KEY `fk_rappel_rdv` (`fk_rdv`),
   CONSTRAINT `fk_rappel_patient` FOREIGN KEY (`fk_patient`) REFERENCES `patient` (`id`),
   CONSTRAINT `fk_rappel_rdv` FOREIGN KEY (`fk_rdv`) REFERENCES `rdv` (`id`),
-  CONSTRAINT `ck_rappel_type` CHECK (`type` in ('RAPPEL_RDV','REVISITE')),
+  CONSTRAINT `ck_rappel_type` CHECK (`type` in ('CONFIRMATION_RDV','RAPPEL_RDV','REVISITE')),
   CONSTRAINT `ck_rappel_canal` CHECK (`canal` in ('EMAIL','WHATSAPP','SMS')),
   CONSTRAINT `ck_rappel_statut` CHECK (`statut` in ('EN_ATTENTE','ENVOYE','ECHEC','ANNULE'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

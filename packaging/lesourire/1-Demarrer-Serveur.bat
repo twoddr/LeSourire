@@ -41,6 +41,7 @@ echo Démarrage du serveur Le Sourire en arrière-plan...
 echo   Port   : %LESOURIRE_PORT%
 echo   Logs   : %LOG_FILE%
 echo   Arrêt  : Arreter-Serveur.bat
+echo   Le client ne doit être lancé qu'une fois le serveur prêt à répondre.
 echo.
 
 REM Lance le serveur sans fenêtre et mémorise son PID pour Arreter-Serveur.bat.
@@ -51,6 +52,10 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
+
+set "SERVEUR_PID="
+set /p SERVEUR_PID=<"%PID_FILE%"
+if defined SERVEUR_PID echo Serveur lancé en arrière-plan ^(PID %SERVEUR_PID%^).
 
 endlocal
 exit /b 0

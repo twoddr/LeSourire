@@ -25,12 +25,17 @@ Premier démarrage (PC principal / serveur)
    Connexion : admin / admin
    Adresse serveur = http://localhost:8420
    (ou http://ADRESSE-DU-PC:8420 depuis un autre poste).
+   Le client se lance sans console ; en cas de souci, consultez
+   client\logs\lesourire-client.log (ou 2-Demarrer-LeSourire-debug.bat
+   pour voir la console).
 
 Un seul PC
 ----------
 Vous pouvez utiliser ToutDemarrer.bat :
-cela lance le serveur (fenêtre masquée), attend qu'il soit prêt,
-puis lance le client. Arrêtez le serveur avec Arreter-Serveur.bat.
+cela lance le serveur (fenêtre masquée), affiche une progression pendant
+l'attente, puis lance le client — uniquement lorsque le serveur est prêt
+(même si le premier démarrage, migrations comprises, prend du temps).
+Arrêtez le serveur avec Arreter-Serveur.bat.
 
 Postes clients supplémentaires
 ------------------------------
@@ -51,5 +56,6 @@ Dépannage
   a bien été lancé (Arreter-Serveur.bat indique s'il tourne), que le pare-feu
   autorise le port 8420, et consulter serveur\logs\lesourire-serveur.log.
 - « Java Runtime introuvable » : dossier jre-windows manquant.
+- « Le client ne démarre pas » : consulter client\logs\lesourire-client.log.
 - Erreur BD : MariaDB démarré ? Identifiants dans lesourire-serveur.conf.bat ?
   Script sql\01_creer_bd.sql exécuté (créé aussi l’utilisateur lesourire@localhost) ?

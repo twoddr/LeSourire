@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.lesourire.commun.CanalNotification;
+
 /**
  * Fiche patient échangée entre serveur et client.
  * Classe mutable à champs publics : elle sert de support direct au formulaire
@@ -30,6 +32,10 @@ public class PatientDTO {
     public String profession;
     public String personneUrgenceNom;
     public String personneUrgenceTel;
+
+    // Notifications : canal préféré + accord du patient pour être rappelé
+    public CanalNotification canalNotification = CanalNotification.AUTO;
+    public boolean consentementRappel = true;
 
     // Médical
     public String antecedents;

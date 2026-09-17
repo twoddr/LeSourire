@@ -26,6 +26,10 @@ fi
 
 MODULE_PATH="${CLIENT_HOME}:${CLIENT_HOME}/lib:${JFX_DIR}"
 
+echo "Lancement du client Le Sourire..."
+echo "(le serveur doit être démarré ; sinon, utilisez ./ToutDemarrer.sh)"
+echo
+
 exec "${JAVA_HOME}/bin/java" \
     -Dfile.encoding=UTF-8 \
     --module-path "${MODULE_PATH}" \

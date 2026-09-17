@@ -6,6 +6,7 @@ import java.util.function.Function;
 
 import com.lesourire.client.coeur.Async;
 import com.lesourire.client.service.ServicePatients;
+import com.lesourire.commun.CanalNotification;
 import com.lesourire.commun.dto.CouvertureDTO;
 import com.lesourire.commun.dto.PatientDTO;
 
@@ -34,6 +35,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.util.StringConverter;
 
 /**
  * Fiche patient (création ou modification) : identité et contacts,
@@ -66,6 +68,11 @@ public class FichePatientDialogue extends Dialog<PatientDTO> {
     private final TextField champVille = new TextField("Douala");
     private final TextField champUrgenceNom = new TextField();
     private final TextField champUrgenceTel = new TextField();
+
+    // Notifications
+    private final ComboBox<CanalNotification> champCanalNotification = new ComboBox<>();
+    private final CheckBox champConsentementRappel =
+            new CheckBox("Le patient accepte d'être prévenu");
 
     // Couvertures
     private final TableView<CouvertureDTO> tableCouvertures = new TableView<>();
@@ -139,7 +146,26 @@ public class FichePatientDialogue extends Dialog<PatientDTO> {
         champ(grille, ligne++, 2, "Quartier", champQuartier);
         champ(grille, ligne++, 0, "Ville", champVille);
         champ(grille, ligne, 0, "Contact d'urgence", champUrgenceNom);
-        champ(grille, ligne, 2, "Tél. urgence", champUrgenceTel);
+        champ(grille, ligne++, 2, "Tél. urgence", champUrgenceTel);
+        champ(grille, ligne, 0, "Rappels par", champCanalNotification);
+        champ(grille, ligne, 2, "", champConsentementRappel);
+
+        champCanalNotification.getItems().setAll(CanalNotification.values());
+        champCanalNotification.setConverter(new StringConverter<CanalNotification>() {
+            @Override
+            public String toString(CanalNotification canal) {
+                return canal == null ? "" : canal.getLibelle();
+            }
+
+            @Override
+            public CanalNotification fromString(String texte) {
+                return null;
+            }
+        });
+        champCanalNotification.setTooltip(new Tooltip(
+                "Canal utilisé pour confirmer les rendez-vous et envoyer les rappels."));
+        champConsentementRappel.setTooltip(new Tooltip(
+                "Décochez si le patient ne souhaite recevoir aucun message."));
 
         champNaissance.setPromptText("jj/mm/aaaa");
         champSexe.getSelectionModel().selectFirst();
@@ -328,6 +354,9 @@ public class FichePatientDialogue extends Dialog<PatientDTO> {
         }
         champUrgenceNom.setText(texte(p.personneUrgenceNom));
         champUrgenceTel.setText(texte(p.personneUrgenceTel));
+        champCanalNotification.getSelectionModel().select(
+                p.canalNotification == null ? CanalNotification.AUTO : p.canalNotification);
+        champConsentementRappel.setSelected(p.consentementRappel);
         tableCouvertures.getItems().setAll(p.couvertures);
         champMauvaisPayeur.setSelected(p.mauvaisPayeur);
         champAntecedents.setText(texte(p.antecedents));
@@ -360,6 +389,9 @@ public class FichePatientDialogue extends Dialog<PatientDTO> {
         p.ville = vide(champVille.getText());
         p.personneUrgenceNom = vide(champUrgenceNom.getText());
         p.personneUrgenceTel = vide(champUrgenceTel.getText());
+        p.canalNotification = champCanalNotification.getValue() == null
+                ? CanalNotification.AUTO : champCanalNotification.getValue();
+        p.consentementRappel = champConsentementRappel.isSelected();
         // En création : les couvertures accumulées partent avec le patient.
         // En modification : elles ont déjà été appliquées au fil de l'eau.
         p.couvertures = creation

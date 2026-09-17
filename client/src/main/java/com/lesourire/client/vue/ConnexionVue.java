@@ -39,11 +39,16 @@ public class ConnexionVue {
     private final TextField champServeur = new TextField();
     private final Button boutonConnexion = new Button("Se connecter");
     private final Label labelErreur = new Label();
+    private final Label labelDiagnostic = new Label();
+    private final Hyperlink lienTester = new Hyperlink("Tester la connexion au serveur");
     private final ProgressIndicator indicateur = new ProgressIndicator();
 
     public ConnexionVue(Runnable onConnexionReussie) {
         this.onConnexionReussie = onConnexionReussie;
         construire();
+        // Diagnostic automatique : dès l'ouverture, l'utilisateur voit si le
+        // serveur répond, avant même de saisir ses identifiants.
+        Platform.runLater(this::testerConnexion);
     }
 
     public Node getRacine() {
@@ -87,18 +92,28 @@ public class ConnexionVue {
         labelErreur.getStyleClass().add("label-erreur");
         labelErreur.setWrapText(true);
 
+        labelDiagnostic.getStyleClass().add("label-info");
+        labelDiagnostic.setWrapText(true);
+
+        lienTester.getStyleClass().add("lien-demo");
+        lienTester.setOnAction(e -> testerConnexion());
+
         Hyperlink lienDemo = new Hyperlink("Mode démonstration (sans serveur)");
         lienDemo.getStyleClass().add("lien-demo");
         lienDemo.setOnAction(e -> ouvrirModeDemonstration());
+
+        HBox ligneLiens = new HBox(16, lienTester, lienDemo);
+        ligneLiens.setAlignment(Pos.CENTER);
 
         VBox carte = new VBox(14,
                 entete,
                 champUtilisateur,
                 champMotDePasse,
                 parametresServeur,
+                labelDiagnostic,
                 ligneBouton,
                 labelErreur,
-                lienDemo);
+                ligneLiens);
         carte.getStyleClass().add("carte-connexion");
         carte.setMaxWidth(400);
         carte.setMaxHeight(600);
@@ -147,6 +162,62 @@ public class ConnexionVue {
                 0L, "demo", "Démonstration", null, Role.ADMINISTRATEUR, null, null, true);
         Session.ouvrir(demo, new ApiClient(), true);
         onConnexionReussie.run();
+    }
+
+    /**
+     * Teste la joignabilité du serveur (point public /api/systeme/statut) et
+     * affiche un diagnostic clair, sans exiger d'identifiants.
+     */
+    private void testerConnexion() {
+        String urlServeur = champServeur.getText().trim();
+        if (urlServeur.isEmpty()) {
+            afficherDiagnostic("Adresse du serveur vide : renseignez-la, puis relancez le test.", false);
+            return;
+        }
+
+        afficherDiagnostic("Vérification de la connexion au serveur…", null);
+        lienTester.setDisable(true);
+
+        // Appel réseau hors du fil JavaFX
+        Thread tache = new Thread(() -> {
+            ApiClient api = new ApiClient();
+            api.setUrlBase(urlServeur);
+            try {
+                ApiClient.StatutServeur statut = api.verifierServeur();
+                String version = (statut.version() == null || statut.version().isBlank())
+                        ? "version inconnue"
+                        : "version " + statut.version();
+                Platform.runLater(() -> {
+                    afficherDiagnostic("Serveur joignable (" + version + ").", true);
+                    lienTester.setDisable(false);
+                });
+            } catch (ApiClient.ApiException ex) {
+                Platform.runLater(() -> {
+                    afficherDiagnostic(ex.getMessage(), false);
+                    lienTester.setDisable(false);
+                });
+            }
+        }, "test-serveur");
+        tache.setDaemon(true);
+        tache.start();
+    }
+
+    /**
+     * Affiche le diagnostic de connexion.
+     *
+     * @param succes {@code true} = joignable (vert), {@code false} = échec
+     *               (rouge), {@code null} = vérification en cours (gris)
+     */
+    private void afficherDiagnostic(String message, Boolean succes) {
+        labelDiagnostic.getStyleClass().removeAll("label-succes", "label-erreur", "label-info");
+        if (succes == null) {
+            labelDiagnostic.getStyleClass().add("label-info");
+        } else if (succes) {
+            labelDiagnostic.getStyleClass().add("label-succes");
+        } else {
+            labelDiagnostic.getStyleClass().add("label-erreur");
+        }
+        labelDiagnostic.setText(message);
     }
 
     private void afficherErreur(String message) {

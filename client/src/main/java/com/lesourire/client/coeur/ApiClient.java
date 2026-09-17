@@ -4,9 +4,12 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.net.UnknownHostException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
+import java.nio.channels.UnresolvedAddressException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
@@ -70,6 +73,21 @@ public class ApiClient {
 
         this.enteteAuthorization = entete;
         return lire(reponse.body(), new TypeReference<UtilisateurDTO>() {
+        });
+    }
+
+    /**
+     * Teste la joignabilité du serveur <b>sans identifiants</b>, via le point
+     * public {@code /api/systeme/statut}. Ce point ne répond que lorsque le
+     * serveur est réellement prêt (base de données, contexte Spring).
+     *
+     * @return l'identité et la version du serveur
+     * @throws ApiException avec un message de diagnostic affichable
+     */
+    public StatutServeur verifierServeur() throws ApiException {
+        HttpResponse<String> reponse = executer(requete("GET", "/api/systeme/statut", null, null));
+        verifier(reponse);
+        return lire(reponse.body(), new TypeReference<StatutServeur>() {
         });
     }
 
@@ -152,15 +170,40 @@ public class ApiClient {
     private HttpResponse<String> executer(HttpRequest requete) throws ApiException {
         try {
             return http.send(requete, HttpResponse.BodyHandlers.ofString());
+        } catch (UnknownHostException e) {
+            throw new ApiException("Adresse du serveur introuvable : " + urlBase
+                    + "\nVérifiez l'adresse saisie (nom de machine ou adresse IP).");
         } catch (ConnectException e) {
-            throw new ApiException("Serveur injoignable à l'adresse " + urlBase
-                    + ".\nVérifiez que le serveur est démarré et que l'adresse est correcte.");
+            throw new ApiException(diagnosticConnexion(e));
+        } catch (HttpTimeoutException e) {
+            throw new ApiException("Le serveur ne répond pas (délai dépassé) : " + urlBase
+                    + "\nVérifiez la connexion réseau et que le serveur est bien démarré.");
         } catch (IOException e) {
             throw new ApiException("Erreur de communication avec le serveur : " + e.getMessage());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new ApiException("Connexion interrompue.");
         }
+    }
+
+    /**
+     * Construit le diagnostic d'un échec de connexion.
+     *
+     * <p>Le {@link HttpClient} du JDK encapsule une panne de résolution DNS
+     * dans un {@link ConnectException} dont la cause est une
+     * {@link UnresolvedAddressException} : on la distingue du cas « serveur
+     * arrêté / port fermé », pour orienter l'utilisateur correctement.</p>
+     */
+    private String diagnosticConnexion(ConnectException e) {
+        for (Throwable cause = e.getCause(); cause != null; cause = cause.getCause()) {
+            if (cause instanceof UnresolvedAddressException) {
+                return "Adresse du serveur introuvable : " + urlBase
+                        + "\nVérifiez l'adresse saisie (nom de machine ou adresse IP).";
+            }
+        }
+        return "Serveur injoignable à l'adresse " + urlBase
+                + "\nVérifiez que le serveur est démarré, que le port est correct"
+                + " et qu'aucun pare-feu ne bloque la connexion.";
     }
 
     private <T> T lire(String json, TypeReference<T> type) throws ApiException {
@@ -177,6 +220,10 @@ public class ApiClient {
         } catch (IOException e) {
             throw new ApiException("Impossible de préparer la requête : " + e.getMessage());
         }
+    }
+
+    /** Identité du serveur renvoyée par {@code /api/systeme/statut}. */
+    public record StatutServeur(String application, String version, String heureServeur) {
     }
 
     /** Erreur affichable à l'utilisateur. */

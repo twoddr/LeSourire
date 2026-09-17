@@ -33,4 +33,8 @@ module com.lesourire.client {
 
     opens com.lesourire.client to javafx.graphics;
     opens com.lesourire.client.impression to thymeleaf;
+    /* ApiClient.StatutServeur (record) est désérialisé par Jackson :
+       sans cet « opens », Jackson échoue sur le constructeur canonique
+       (InaccessibleObjectException : « Failed to call `setAccess()` on Constructor ») */
+    opens com.lesourire.client.coeur to com.fasterxml.jackson.databind;
 }
