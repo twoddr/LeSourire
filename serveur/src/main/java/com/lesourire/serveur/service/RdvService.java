@@ -33,10 +33,9 @@ import com.lesourire.serveur.repository.UtilisateurRepository;
 @Transactional
 public class RdvService {
 
-    private static final List<StatutRdv> STATUTS_IGNORER_CHEVAUCHEMENT =
-            List.of(StatutRdv.ANNULE, StatutRdv.ABSENT);
-    private static final DateTimeFormatter FORMAT_HEURE =
-            DateTimeFormatter.ofPattern("dd/MM/yyyy 'à' HH:mm", Locale.FRENCH);
+    private static final List<StatutRdv> STATUTS_IGNORER_CHEVAUCHEMENT = List.of(StatutRdv.ANNULE, StatutRdv.ABSENT);
+    private static final DateTimeFormatter FORMAT_HEURE = DateTimeFormatter.ofPattern("dd/MM/yyyy 'à' HH:mm",
+            Locale.FRENCH);
 
     private final RdvRepository rdvRepository;
     private final RappelRepository rappelRepository;
@@ -83,7 +82,7 @@ public class RdvService {
                 .findByRoleAndActifTrue(Role.DENTISTE)
                 .stream()
                 .sorted(Comparator.comparing(Utilisateur::getNom,
-                                Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER))
+                        Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER))
                         .thenComparing(Utilisateur::getPrenom,
                                 Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER)))
                 .map(Utilisateur::versDTO)
@@ -158,12 +157,12 @@ public class RdvService {
 
     private void annulerRappelsEnAttente(Long rdvId) {
         // Un rendez-vous déplacé ou annulé ne doit plus rien annoncer : la
-        // confirmation comme le rappel J-2 deviennent caducs.
+        // confirmation comme le rappel de la veille deviennent caducs.
         rappelRepository.annulerToutEnAttentePourRdv(rdvId,
                 Rappels.Statut.ANNULE, Rappels.Statut.EN_ATTENTE);
     }
 
-    /** Rappel J-2 (ou J-N, cf. paramètre {@code rappel.jours_avant_rdv}). */
+    /** Rappel de la veille (J-N, cf. paramètre {@code rappel.jours_avant_rdv}, défaut 1). */
     private void programmerRappel(Rdv rdv) {
         int jours = joursAvantRappel();
         LocalDateTime datePrevue = rdv.getDebut().minusDays(jours);
@@ -171,7 +170,7 @@ public class RdvService {
             return;
         }
         Patient patient = rdv.getPatient();
-        CanalDest destinataire = choisirDestinataire(patient);
+        NotificationService.DestinataireRappel destinataire = notificationService.choisirDestinataire(patient);
         if (destinataire == null) {
             return;
         }
@@ -186,7 +185,7 @@ public class RdvService {
      */
     private void programmerConfirmation(Rdv rdv) {
         Patient patient = rdv.getPatient();
-        CanalDest destinataire = choisirDestinataire(patient);
+        NotificationService.DestinataireRappel destinataire = notificationService.choisirDestinataire(patient);
         if (destinataire == null) {
             return;
         }
@@ -195,7 +194,8 @@ public class RdvService {
                         rdv.getPraticien().versDTO().nomComplet()));
     }
 
-    private void enregistrer(Rdv rdv, Rappels.Type type, CanalDest destinataire,
+    private void enregistrer(Rdv rdv, Rappels.Type type,
+            NotificationService.DestinataireRappel destinataire,
             LocalDateTime datePrevue, String contenu) {
         Rappel rappel = new Rappel();
         rappel.setPatient(rdv.getPatient());
@@ -215,53 +215,10 @@ public class RdvService {
                     try {
                         return Integer.parseInt(p.getValeur().trim());
                     } catch (Exception e) {
-                        return 2;
+                        return 1;
                     }
                 })
-                .orElse(2);
-    }
-
-    /**
-     * Canal et adresse de notification du patient.
-     *
-     * <p>Le SMS vient en premier : c'est le canal réellement lu au Cameroun et
-     * le seul que le serveur sait envoyer tout seul. WhatsApp prend le relais
-     * (envoi assisté par le secrétariat) et l'e-mail reste le dernier recours.
-     * La préférence saisie sur la fiche patient est respectée ; si le moyen
-     * correspondant est absent, on retombe sur l'ordre par défaut.</p>
-     *
-     * <p>Aucun rappel n'est programmé si le patient a refusé d'être notifié.</p>
-     */
-    private static CanalDest choisirDestinataire(Patient patient) {
-        if (!patient.isConsentementRappel()) {
-            return null;
-        }
-        String telephone = nonVide(patient.getTelephone());
-        String whatsapp = nonVide(patient.numeroWhatsapp());
-        String email = nonVide(patient.getEmail());
-
-        CanalDest parSms = new CanalDest(Rappels.Canal.SMS, telephone);
-        CanalDest parWhatsapp = new CanalDest(Rappels.Canal.WHATSAPP, whatsapp);
-        CanalDest parEmail = new CanalDest(Rappels.Canal.EMAIL, email);
-
-        return switch (patient.getCanalNotification()) {
-            case SMS, AUTO -> premier(parSms, parWhatsapp, parEmail);
-            case WHATSAPP -> premier(parWhatsapp, parSms, parEmail);
-            case EMAIL -> premier(parEmail, parSms, parWhatsapp);
-        };
-    }
-
-    private static CanalDest premier(CanalDest... candidats) {
-        for (CanalDest candidat : candidats) {
-            if (candidat.adresse() != null) {
-                return candidat;
-            }
-        }
-        return null;
-    }
-
-    private static String nonVide(String valeur) {
-        return valeur == null || valeur.isBlank() ? null : valeur.trim();
+                .orElse(1);
     }
 
     private void validerCreneau(RdvDTO dto) {
@@ -332,8 +289,5 @@ public class RdvService {
 
     private static String videSiBlank(String v) {
         return v == null || v.isBlank() ? null : v.trim();
-    }
-
-    private record CanalDest(Rappels.Canal canal, String adresse) {
     }
 }

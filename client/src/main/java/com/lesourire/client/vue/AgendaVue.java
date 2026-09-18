@@ -20,6 +20,9 @@ import com.lesourire.client.coeur.Session;
 import com.lesourire.client.service.ServicePatients;
 import com.lesourire.client.service.ServicePatientsApi;
 import com.lesourire.client.service.ServicePatientsDemo;
+import com.lesourire.client.service.ServiceRappels;
+import com.lesourire.client.service.ServiceRappelsApi;
+import com.lesourire.client.service.ServiceRappelsDemo;
 import com.lesourire.client.service.ServiceRdv;
 import com.lesourire.client.service.ServiceRdvApi;
 import com.lesourire.client.service.ServiceRdvDemo;
@@ -62,6 +65,7 @@ public class AgendaVue {
     private final BorderPane racine = new BorderPane();
     private final ServiceRdv serviceRdv;
     private final ServicePatients servicePatients;
+    private final ServiceRappels serviceRappels;
 
     private LocalDate ancre = LocalDate.now();
     private boolean modeSemaine = false;
@@ -82,6 +86,7 @@ public class AgendaVue {
         boolean demo = Session.estModeDemonstration();
         this.serviceRdv = demo ? new ServiceRdvDemo() : new ServiceRdvApi(Session.api());
         this.servicePatients = demo ? new ServicePatientsDemo() : new ServicePatientsApi(Session.api());
+        this.serviceRappels = demo ? new ServiceRappelsDemo() : new ServiceRappelsApi(Session.api());
         construire();
         chargerPraticiensPuisAgenda();
     }
@@ -176,7 +181,14 @@ public class AgendaVue {
 
         grille.setOnCreer(this::ouvrirFicheAuCreneau);
         grille.setOnOuvrir(this::ouvrirFiche);
-        grille.setOnSelection(rdv -> selectionSalle = null);
+        grille.setOnSelection(rdv -> {
+            selectionSalle = null;
+            if (rappels != null) {
+                rappels.mettreEnEvidence(rdv == null ? null : rdv.id);
+            }
+        });
+        grille.setOnStatut(this::appliquerStatut);
+        grille.setOnNotifier(this::notifierPatient);
         VBox.setVgrow(grille, Priority.ALWAYS);
 
         HBox actionsStatut = new HBox(8,
@@ -189,7 +201,13 @@ public class AgendaVue {
 
         labelStatut.getStyleClass().add("note-discrete");
 
-        VBox centre = new VBox(10, grille, actionsStatut, labelStatut);
+        Label aide = new Label("Clic droit sur un rendez-vous : modifier, changer le statut, "
+                + "notifier le patient  ·  Double-clic : ouvrir  ·  "
+                + "Double-clic dans le vide : créer un rendez-vous");
+        aide.getStyleClass().add("note-discrete");
+        aide.setWrapText(true);
+
+        VBox centre = new VBox(10, grille, actionsStatut, labelStatut, aide);
         HBox.setHgrow(centre, Priority.ALWAYS);
         VBox.setVgrow(grille, Priority.ALWAYS);
 
@@ -198,9 +216,9 @@ public class AgendaVue {
         construireSalleAttente();
         VBox.setVgrow(salleAttente, Priority.ALWAYS);
 
-        // Notifications patients : confirmations et rappels J-2 en attente
+        // Notifications patients : confirmations et rappels la veille en attente
         // de traitement (SMS automatique, WhatsApp / e-mail assistés).
-        rappels = new RappelsPanneau(this::afficherErreur);
+        rappels = new RappelsPanneau(serviceRappels, this::afficherErreur);
         Label titreRappels = new Label("Notifications à envoyer");
         titreRappels.getStyleClass().add("sous-titre-section");
         VBox.setVgrow(rappels.getRacine(), Priority.ALWAYS);
@@ -380,10 +398,40 @@ public class AgendaVue {
                     new IllegalStateException("Sélectionnez un rendez-vous."));
             return;
         }
-        Long id = sel.id;
+        appliquerStatut(sel, statut);
+    }
+
+    /**
+     * Change le statut d'un rendez-vous, que la demande vienne des boutons
+     * (sélection courante) ou du menu contextuel de la grille.
+     */
+    private void appliquerStatut(RdvDTO rdv, StatutRdv statut) {
+        if (rdv == null || rdv.id == null) {
+            return;
+        }
+        Long id = rdv.id;
         Async.executer(() -> serviceRdv.changerStatut(id, statut),
                 ok -> chargerAgenda(),
                 e -> afficherErreur("Impossible de changer le statut", e));
+    }
+
+    /** Clic droit ▸ « Notifier le patient… » : notification manuelle sur ce RDV. */
+    private void notifierPatient(RdvDTO rdv) {
+        if (rdv == null || rdv.id == null) {
+            return;
+        }
+        Dialogues.afficher(new NotificationDialogue(rdv),
+                racine.getScene() == null ? null : racine.getScene().getWindow())
+                .ifPresent(saisie -> Async.executer(
+                        () -> serviceRappels.creer(rdv, saisie.type(), saisie.canal(),
+                                saisie.contenu()),
+                        cree -> {
+                            labelStatut.setText("Notification programmée pour "
+                                    + (rdv.patientNom == null ? "le patient" : rdv.patientNom)
+                                    + " (" + cree.canal.getLibelle() + ")");
+                            rappels.charger();
+                        },
+                        e -> afficherErreur("Impossible de programmer la notification", e)));
     }
 
     private static String capitalize(String s) {

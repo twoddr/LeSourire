@@ -1,7 +1,7 @@
 package com.lesourire.commun;
 
 /**
- * Canal utilisé pour notifier un patient (confirmation de rendez-vous, rappel J-2…).
+ * Canal utilisé pour notifier un patient (confirmation de rendez-vous, rappel la veille…).
  *
  * <p>Le cabinet est au Cameroun : le SMS est le canal de masse, WhatsApp est
  * utilisé en repli (envoi assisté « click-to-chat ») et l'e-mail reste le

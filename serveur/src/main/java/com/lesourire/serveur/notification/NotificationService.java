@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import com.lesourire.commun.Rappels;
 import com.lesourire.serveur.entite.Parametre;
+import com.lesourire.serveur.entite.Patient;
 import com.lesourire.serveur.repository.ParametreRepository;
 
 /**
@@ -123,6 +124,78 @@ public class NotificationService {
                                 "Aucun fournisseur de SMS « journal » disponible.")));
     }
 
+    // ----------------------------------------------------------- destinataires
+
+    /** Canal retenu et adresse concrète pour joindre un patient. */
+    public record DestinataireRappel(Rappels.Canal canal, String adresse) {
+    }
+
+    /**
+     * Canal et adresse de notification selon la préférence de la fiche patient.
+     *
+     * <p>Le SMS vient en premier : c'est le canal réellement lu au Cameroun et
+     * le seul que le serveur sait envoyer tout seul. WhatsApp prend le relais
+     * (envoi assisté par le secrétariat) et l'e-mail reste le dernier recours.
+     * La préférence saisie sur la fiche est respectée ; si le moyen
+     * correspondant est absent, on retombe sur l'ordre par défaut.</p>
+     *
+     * <p>Aucun envoi n'est possible si le patient a refusé d'être notifié.</p>
+     *
+     * @return {@code null} si le patient refuse les rappels ou n'a aucune
+     *         coordonnée exploitable
+     */
+    public DestinataireRappel choisirDestinataire(Patient patient) {
+        if (patient == null || !patient.isConsentementRappel()) {
+            return null;
+        }
+        DestinataireRappel parSms =
+                new DestinataireRappel(Rappels.Canal.SMS, nonVide(patient.getTelephone()));
+        DestinataireRappel parWhatsapp =
+                new DestinataireRappel(Rappels.Canal.WHATSAPP, nonVide(patient.numeroWhatsapp()));
+        DestinataireRappel parEmail =
+                new DestinataireRappel(Rappels.Canal.EMAIL, nonVide(patient.getEmail()));
+
+        return switch (patient.getCanalNotification()) {
+            case SMS, AUTO -> premier(parSms, parWhatsapp, parEmail);
+            case WHATSAPP -> premier(parWhatsapp, parSms, parEmail);
+            case EMAIL -> premier(parEmail, parSms, parWhatsapp);
+        };
+    }
+
+    /**
+     * Canal et adresse pour un canal explicitement demandé (notification
+     * manuelle depuis un rendez-vous). Le consentement reste exigé, mais aucune
+     * bascule silencieuse n'a lieu : si la coordonnée du canal voulu manque,
+     * {@code null} est renvoyé pour que l'appelant explique le refus.
+     */
+    public DestinataireRappel choisirDestinataire(Patient patient, Rappels.Canal souhaite) {
+        if (souhaite == null) {
+            return choisirDestinataire(patient);
+        }
+        if (patient == null || !patient.isConsentementRappel()) {
+            return null;
+        }
+        String adresse = switch (souhaite) {
+            case SMS -> nonVide(patient.getTelephone());
+            case WHATSAPP -> nonVide(patient.numeroWhatsapp());
+            case EMAIL -> nonVide(patient.getEmail());
+        };
+        return adresse == null ? null : new DestinataireRappel(souhaite, adresse);
+    }
+
+    private static DestinataireRappel premier(DestinataireRappel... candidats) {
+        for (DestinataireRappel candidat : candidats) {
+            if (candidat.adresse() != null) {
+                return candidat;
+            }
+        }
+        return null;
+    }
+
+    private static String nonVide(String valeur) {
+        return valeur == null || valeur.isBlank() ? null : valeur.trim();
+    }
+
     // ---------------------------------------------------------------- messages
 
     /** Message de confirmation envoyé dès la prise de rendez-vous. */
@@ -132,7 +205,7 @@ public class NotificationService {
                 + ". Merci d'arriver 10 min avant.";
     }
 
-    /** Message de rappel J-2. */
+    /** Message de rappel de la veille. */
     public String messageRappel(String patientPrenom, LocalDateTime debut) {
         return entete(patientPrenom) + "rappel de votre RDV le " + debut.format(FORMAT_RDV)
                 + ". Merci de prévenir en cas d'empêchement.";

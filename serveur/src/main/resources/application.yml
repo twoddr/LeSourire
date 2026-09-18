@@ -33,7 +33,7 @@ lesourire:
     cle: ${LESOURIRE_CHIFFREMENT_CLE:}
     fichier: ${LESOURIRE_CHIFFREMENT_FICHIER:fichiers/cle-chiffrement.key}
 
-  # Notifications aux patients (confirmations de RDV, rappels J-2).
+  # Notifications aux patients (confirmation de RDV, rappel la veille).
   # Les réglages métier (activation, fournisseur, expéditeur…) vivent dans la
   # table `parametre` et se modifient depuis Administration → Paramètres.
   notification:

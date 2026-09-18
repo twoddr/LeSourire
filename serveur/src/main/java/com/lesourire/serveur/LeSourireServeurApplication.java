@@ -9,7 +9,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 /**
  * Point d'entrée du serveur Le Sourire.
  * Héberge l'API REST, applique les migrations de base de données au démarrage
- * et exécutera les tâches planifiées (rappels J-2, revisites, sauvegardes).
+ * et exécutera les tâches planifiées (rappel la veille, revisites, sauvegardes).
  */
 @SpringBootApplication
 @EnableScheduling

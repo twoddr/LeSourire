@@ -3,6 +3,7 @@ package com.lesourire.serveur.repository;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -54,5 +55,15 @@ public interface RappelRepository extends JpaRepository<Rappel, Long> {
     List<Long> idsDus(@Param("enAttente") Rappels.Statut enAttente,
             @Param("canal") Rappels.Canal canal,
             @Param("limite") LocalDateTime limite);
+
+    // ------------------------------------------------- journal des notifications
+
+    /** Derniers rappels d'un état donné, les plus récents d'abord (paginé). */
+    List<Rappel> findByStatutOrderByDateEnvoiDesc(Rappels.Statut statut, Pageable pageable);
+
+    long countByStatut(Rappels.Statut statut);
+
+    /** Compteur « envoyées aujourd'hui » : s'appuie sur l'horodatage d'envoi. */
+    long countByStatutAndDateEnvoiGreaterThanEqual(Rappels.Statut statut, LocalDateTime depuis);
 }
 

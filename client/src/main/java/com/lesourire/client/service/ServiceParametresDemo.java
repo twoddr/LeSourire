@@ -15,7 +15,7 @@ public class ServiceParametresDemo implements ServiceParametres {
         parametres.add(new ParametreDTO("cabinet.telephone",
                 "(237) 233 431 411", "Téléphone du cabinet"));
         parametres.add(new ParametreDTO("rappel.jours_avant_rdv",
-                "2", "Nombre de jours avant RDV pour le rappel"));
+                "1", "Nombre de jours avant RDV pour le rappel"));
     }
 
     @Override

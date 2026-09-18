@@ -29,7 +29,7 @@ public enum Module {
             Set.of(DENTISTE, ASSISTANT, SECRETAIRE, ADMINISTRATEUR)),
 
     AGENDA("Agenda", Material2AL.EVENT,
-            "Rendez-vous et salle d'attente, rappels automatiques J-2 et revisites post-intervention.",
+            "Rendez-vous et salle d'attente, rappels automatiques la veille et revisites post-intervention.",
             Set.of(DENTISTE, ASSISTANT, SECRETAIRE, ADMINISTRATEUR)),
 
     FACTURATION("Facturation", Material2MZ.RECEIPT,

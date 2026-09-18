@@ -5,7 +5,8 @@
 --            (le fichier crée lui-même la base `lesourire`)
 --
 -- Ce dump contient la table flyway_schema_history avec les sommes de contrôle
--- des migrations V1 à V10 : le serveur démarrera dessus sans rien rejouer.
+-- des migrations V1 à V10 : le serveur démarrera dessus et n'appliquera que les
+-- migrations suivantes (V11 et au-delà).
 --
 -- Les données sensibles (identité et dossier médical des patients, coordonnées
 -- des utilisateurs) sont chiffrées par l'application à l'écriture : ce dump ne
@@ -726,7 +727,7 @@ INSERT INTO `parametre` VALUES
 ('notification.max_tentatives','3','Nombre maximal de tentatives d''envoi d''un rappel','2026-09-12 23:37:29'),
 ('notification.nom_expediteur','CABINET LE SOURIRE','Nom d''expéditeur des SMS (whitelist opérateur)','2026-09-12 23:37:29'),
 ('rappel.heure_envoi','09:00','Heure d\'envoi des rappels du jour','2026-09-12 23:37:29'),
-('rappel.jours_avant_rdv','2','Nombre de jours avant RDV pour le rappel','2026-09-12 23:37:29'),
+('rappel.jours_avant_rdv','1','Nombre de jours avant RDV pour le rappel','2026-09-12 23:37:29'),
 ('sauvegarde.dossier','sauvegardes','Dossier des sauvegardes de la BD','2026-09-12 23:37:29'),
 ('sauvegarde.heure','22:00','Heure de la sauvegarde quotidienne','2026-09-12 23:37:29'),
 ('smtp.hote','','Serveur SMTP pour les mails','2026-09-12 23:37:29'),

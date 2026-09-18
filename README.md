@@ -11,7 +11,7 @@ stock, comptabilité et comptes utilisateurs par rôle.
 │  Client JavaFX     │ ─────────────────────► │  Serveur Spring Boot         │
 │  (postes cabinet,  │                        │  (PC principal du cabinet)   │
 │   Windows)         │ ◄───────────────────── │  · API REST + sécurité       │
-└────────────────────┘                        │  · Rappels J-2 / revisites   │
+└────────────────────┘                        │  · Rappels J-1 / revisites   │
                                               │  · Sauvegardes automatiques  │
         ... x N postes                        │  · Migrations BD (Flyway)    │
                                               └──────────────┬───────────────┘
@@ -28,7 +28,7 @@ stock, comptabilité et comptes utilisateurs par rôle.
 | `client`  | Application de bureau JavaFX (thème AtlantaFX)                        |
 
 Le serveur est le seul composant qui parle à la base de données. Il tourne en
-permanence, ce qui permet d'envoyer les rappels (J-2 avant rendez-vous,
+permanence, ce qui permet d'envoyer les rappels (J-1 avant rendez-vous,
 revisites post-intervention) même si aucun poste client n'est allumé.
 
 ## Version
@@ -137,9 +137,9 @@ Le parcours est le suivant :
 
 1. à l'enregistrement d'un rendez-vous, une **confirmation** part vers le
    patient (moins d'une minute après, le temps d'une passe du planificateur) ;
-2. **la veille à J-2** (paramètre `rappel.jours_avant_rdv`), un rappel est
-   envoyé ; un rendez-vous annulé ou déplacé annule automatiquement les envois
-   encore en attente ;
+2. **la veille** (paramètre `rappel.jours_avant_rdv`, 1 jour par défaut), un
+   rappel est envoyé ; un rendez-vous annulé ou déplacé annule automatiquement
+   les envois encore en attente ;
 3. rien n'est programmé si la case « le patient accepte d'être prévenu » est
    décochée sur sa fiche.
 
@@ -152,7 +152,26 @@ message et un lien `wa.me` / `mailto:`, le secrétariat clique puis confirme
 l'envoi. Ils ne demandent donc aucun compte Meta ni serveur SMTP. Le panneau
 **« Notifications à envoyer »** (colonne de droite de l'Agenda) liste les
 envois restants, permet de forcer un envoi, de marquer un envoi assisté comme
-fait ou de l'annuler.
+fait ou de l'annuler. Chaque ligne rappelle la date d'envoi prévue et le
+rendez-vous concerné ; le bandeau du panneau compte les envois **en attente** et
+**envoyés**, et le bouton **Historique** ouvre le journal des derniers envois
+(date, patient, motif, canal, destinataire, rendez-vous ; le message complet
+apparaît en infobulle).
+
+Une notification peut aussi être créée à la main : un **clic droit sur un
+rendez-vous** de l'agenda ouvre un menu qui permet de modifier la fiche, de
+changer le statut (planifié, confirmé, en salle d'attente, honoré, absent,
+annulé) ou de **notifier le patient**. La notification est alors rattachée au
+rendez-vous cliqué — le dialogue en rappelle le patient, la date, le praticien
+et le téléphone — avec choix du motif (confirmation, rappel, revisite), du canal
+et du message ; un message laissé vide reprend le modèle standard du cabinet.
+Le patient doit toujours accepter d'être prévenu, et le canal demandé doit
+exister sur sa fiche (sinon le serveur explique le refus au lieu de changer de
+canal en silence).
+
+Repères souris de l'agenda : **double-clic** sur un bloc ouvre la fiche,
+**double-clic dans une zone vide** crée un rendez-vous sur le créneau visé,
+**simple clic dans le vide** désélectionne.
 
 Réglages (Administration ▸ Paramètres) : `notification.active` (interrupteur
 général des envois automatiques, `false` par défaut), `notification.fournisseur`
@@ -195,7 +214,7 @@ initiales et l'historique Flyway (le serveur démarre dessus sans rien rejouer).
 |-------|--------------------------------------------------------------------|------|
 | 1     | Squelette : BD complète, serveur, client, connexion, navigation    | ✔    |
 | 2     | Module Patients (fiche, recherche, tiers payants, audit)           | ✔    |
-| 3     | Agenda / RDV + programmation des rappels J-2 (envoi mail/WA ensuite) | ✔    |
+| 3     | Agenda / RDV + programmation des rappels J-1 (envoi mail/WA ensuite) | ✔    |
 | 4     | Facturation (actes D/Z, remises, quotes-parts, paiements)           | ✔    |
 | 5     | Stock (articles, fournisseurs, alertes)                             | ✔    |
 | 6a    | Administration (utilisateurs, tarifaire, paramètres, sauvegardes)   | ✔    |

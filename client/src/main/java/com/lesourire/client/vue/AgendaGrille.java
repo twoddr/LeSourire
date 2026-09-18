@@ -11,14 +11,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import com.lesourire.commun.StatutRdv;
 import com.lesourire.commun.dto.RdvDTO;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
@@ -30,8 +36,13 @@ import javafx.scene.layout.VBox;
 import javafx.scene.shape.Line;
 
 /**
- * Grille horaire (jour ou semaine) : blocs proportionnels à la durée,
- * clic dans une zone vide pour créer, double-clic sur un bloc pour ouvrir.
+ * Grille horaire (jour ou semaine) : blocs proportionnels à la durée.
+ *
+ * <p>Ergonomie souris : clic simple dans le vide pour désélectionner,
+ * double-clic dans le vide pour créer un rendez-vous au créneau visé,
+ * double-clic sur un bloc pour l'ouvrir, clic droit pour le menu contextuel
+ * (ouverture, changement de statut, notification du patient) ou, dans le vide,
+ * la création au créneau visé.</p>
  */
 public class AgendaGrille extends VBox {
 
@@ -49,14 +60,18 @@ public class AgendaGrille extends VBox {
     private final Pane couchesRdv = new Pane();
     private final ScrollPane scroll = new ScrollPane();
     private final Pane echelleHeures = new Pane();
+    private final ContextMenu menuFond = new ContextMenu();
 
     private LocalDate debutPeriode = LocalDate.now();
     private int nbJours = 1;
     private List<RdvDTO> rdvsCourants = List.of();
     private RdvDTO selection;
+    private LocalDateTime creneauMenu;
     private Consumer<LocalDateTime> onCreer;
     private Consumer<RdvDTO> onOuvrir;
     private Consumer<RdvDTO> onSelection;
+    private BiConsumer<RdvDTO, StatutRdv> onStatut;
+    private Consumer<RdvDTO> onNotifier;
 
     public AgendaGrille() {
         getStyleClass().add("agenda-grille");
@@ -84,15 +99,27 @@ public class AgendaGrille extends VBox {
         getChildren().addAll(bandeauJours, scroll);
 
         fond.setOnMouseClicked(e -> {
-            if (e.getButton() != MouseButton.PRIMARY || e.getClickCount() != 1) {
+            if (e.getButton() != MouseButton.PRIMARY) {
                 return;
             }
-            LocalDateTime creneau = coordonneesVersDateHeure(e.getX(), e.getY());
-            if (creneau != null && onCreer != null) {
+            if (e.getClickCount() >= 2) {
+                creerAuCreneau(coordonneesVersDateHeure(e.getX(), e.getY()));
+            } else {
+                // Un simple clic dans le vide ne fait que relâcher la sélection.
                 selectionner(null);
-                onCreer.accept(creneau);
             }
         });
+
+        fond.setOnContextMenuRequested(e -> {
+            creneauMenu = coordonneesVersDateHeure(e.getX(), e.getY());
+            selectionner(null);
+            menuFond.show(fond, e.getScreenX(), e.getScreenY());
+            e.consume();
+        });
+
+        MenuItem itemNouveau = new MenuItem("Nouveau rendez-vous ici");
+        itemNouveau.setOnAction(e -> creerAuCreneau(creneauMenu));
+        menuFond.getItems().setAll(itemNouveau);
 
         zone.widthProperty().addListener((o, a, b) -> {
             peindreFond();
@@ -110,6 +137,24 @@ public class AgendaGrille extends VBox {
 
     public void setOnSelection(Consumer<RdvDTO> onSelection) {
         this.onSelection = onSelection;
+    }
+
+    /** Changement de statut demandé au clic droit sur un bloc. */
+    public void setOnStatut(BiConsumer<RdvDTO, StatutRdv> onStatut) {
+        this.onStatut = onStatut;
+    }
+
+    /** Notification manuelle demandée au clic droit sur un bloc. */
+    public void setOnNotifier(Consumer<RdvDTO> onNotifier) {
+        this.onNotifier = onNotifier;
+    }
+
+    private void creerAuCreneau(LocalDateTime creneau) {
+        if (creneau == null || onCreer == null) {
+            return;
+        }
+        selectionner(null);
+        onCreer.accept(creneau);
     }
 
     public RdvDTO getSelection() {
@@ -281,7 +326,50 @@ public class AgendaGrille extends VBox {
                 onOuvrir.accept(rdv);
             }
         });
+
+        ContextMenu menu = menuDuBloc(rdv);
+        bloc.setOnContextMenuRequested(e -> {
+            selectionner(rdv);
+            menu.show(bloc, e.getScreenX(), e.getScreenY());
+            e.consume();
+        });
         return bloc;
+    }
+
+    /**
+     * Menu contextuel d'un rendez-vous : ouverture, changement de statut et
+     * notification manuelle du patient.
+     */
+    private ContextMenu menuDuBloc(RdvDTO rdv) {
+        MenuItem ouvrir = new MenuItem("Ouvrir / modifier   (double-clic)");
+        ouvrir.setOnAction(e -> {
+            if (onOuvrir != null) {
+                onOuvrir.accept(rdv);
+            }
+        });
+
+        Menu statut = new Menu("Changer le statut");
+        for (StatutRdv s : StatutRdv.values()) {
+            MenuItem item = new MenuItem(s.getLibelle());
+            item.setDisable(s == rdv.statut);
+            item.setOnAction(e -> {
+                if (onStatut != null) {
+                    onStatut.accept(rdv, s);
+                }
+            });
+            statut.getItems().add(item);
+        }
+
+        MenuItem notifier = new MenuItem("Notifier le patient…");
+        notifier.setDisable(rdv.patientId == null);
+        notifier.setOnAction(e -> {
+            if (onNotifier != null) {
+                onNotifier.accept(rdv);
+            }
+        });
+
+        return new ContextMenu(ouvrir, new SeparatorMenuItem(), statut,
+                new SeparatorMenuItem(), notifier);
     }
 
     private void selectionner(RdvDTO rdv) {
