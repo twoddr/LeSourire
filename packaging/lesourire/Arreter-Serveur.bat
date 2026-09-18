@@ -5,7 +5,7 @@ cd /d "%~dp0"
 set "PID_FILE=%~dp0serveur\lesourire-serveur.pid"
 
 if not exist "%PID_FILE%" (
-    echo Aucun serveur Le Sourire n'a été lancé en arrière-plan.
+    echo Aucun serveur Le Sourire n'a ete lance en arriere-plan.
     echo ^(fichier %PID_FILE% introuvable^)
     pause
     exit /b 1
@@ -20,12 +20,12 @@ if not defined SERVEUR_PID (
     exit /b 1
 )
 
-echo Arrêt du serveur Le Sourire ^(PID %SERVEUR_PID%^)...
+echo Arret du serveur Le Sourire ^(PID %SERVEUR_PID%^)...
 taskkill /PID %SERVEUR_PID% /F >nul 2>&1
 if errorlevel 1 (
-    echo Le serveur n'a pas pu être arrêté ^(il est peut-être déjà fermé^).
+    echo Le serveur n'a pas pu etre arrete ^(il est peut-etre deja ferme^).
 ) else (
-    echo Serveur arrêté.
+    echo Serveur arrete.
 )
 
 del "%PID_FILE%" >nul 2>&1

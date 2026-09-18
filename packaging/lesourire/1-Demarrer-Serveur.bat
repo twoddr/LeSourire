@@ -29,7 +29,7 @@ if not defined LESOURIRE_PORT set "LESOURIRE_PORT=8420"
 
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
-REM Console masquée : on préfère javaw.exe ; les logs Spring Boot sont écrits
+REM Console masquee : on prefere javaw.exe ; les logs Spring Boot sont ecrits
 REM dans serveur\logs\lesourire-serveur.log (variable LESOURIRE_LOG).
 set "LESOURIRE_LOG=%LOG_FILE%"
 
@@ -37,15 +37,15 @@ set "JAVA_CMD="
 if exist "%JAVA_HOME%\bin\javaw.exe" set "JAVA_CMD=%JAVA_HOME%\bin\javaw.exe"
 if not defined JAVA_CMD set "JAVA_CMD=%JAVA_HOME%\bin\java.exe"
 
-echo Démarrage du serveur Le Sourire en arrière-plan...
+echo Demarrage du serveur Le Sourire en arriere-plan...
 echo   Port   : %LESOURIRE_PORT%
 echo   Logs   : %LOG_FILE%
-echo   Arrêt  : Arreter-Serveur.bat
-echo   Le client ne doit être lancé qu'une fois le serveur prêt à répondre.
+echo   Arret  : Arreter-Serveur.bat
+echo   Le client ne doit etre lance qu'une fois le serveur pret a repondre.
 echo.
 
-REM Lance le serveur sans fenêtre et mémorise son PID pour Arreter-Serveur.bat.
-REM Le répertoire de travail est serveur\ : le nom du JAR est ainsi sans espaces.
+REM Lance le serveur sans fenetre et memorise son PID pour Arreter-Serveur.bat.
+REM Le repertoire de travail est serveur\ : le nom du JAR est ainsi sans espaces.
 powershell -NoProfile -Command "$p = Start-Process -FilePath '%JAVA_CMD%' -ArgumentList '-Dfile.encoding=UTF-8','-jar','lesourire-serveur.jar' -WorkingDirectory '%SERVEUR_HOME%' -WindowStyle Hidden -PassThru; [System.IO.File]::WriteAllText('%PID_FILE%', [string]$p.Id)"
 if errorlevel 1 (
     echo Impossible de lancer le serveur. Consultez le terminal.
@@ -55,7 +55,7 @@ if errorlevel 1 (
 
 set "SERVEUR_PID="
 set /p SERVEUR_PID=<"%PID_FILE%"
-if defined SERVEUR_PID echo Serveur lancé en arrière-plan ^(PID %SERVEUR_PID%^).
+if defined SERVEUR_PID echo Serveur lance en arriere-plan ^(PID %SERVEUR_PID%^).
 
 endlocal
 exit /b 0

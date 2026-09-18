@@ -31,8 +31,8 @@ if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
 set "MODULE_PATH=%CLIENT_HOME%;%CLIENT_HOME%\lib;%JFX_DIR%"
 
-REM Fenêtre masquée : on préfère javaw.exe (aucune console). La sortie est
-REM journalisée dans client\logs\lesourire-client.log ; pour un lancement avec
+REM Fenetre masquee : on prefere javaw.exe (aucune console). La sortie est
+REM journalisee dans client\logs\lesourire-client.log ; pour un lancement avec
 REM console, utilisez 2-Demarrer-LeSourire-debug.bat.
 set "JAVA_CMD="
 if exist "%JAVA_HOME%\bin\javaw.exe" set "JAVA_CMD=%JAVA_HOME%\bin\javaw.exe"
