@@ -1,0 +1,157 @@
+PROCEDURE DE DEPLOIEMENT WINDOWS — LE SOURIRE
+=============================================
+(Document interne, à suivre sur le PC du cabinet — accès RustDesk ou sur place)
+
+Objet : installer la version corrigée sur un poste Windows qui exécute déjà une
+version ancienne (0.1.0, 0.1.1 ou antérieure) et rouvrir l'accès aux données.
+
+Version 0.1.3 : ce qui change pour vous (et simplifie cette procédure)
+---------------------------------------------------------------------
+- les lanceurs ne sont plus cassés par un espace dans le chemin du dossier et ils
+  affichent au démarrage le DOSSIER utilisé, la VERSION du paquet et l'EMPREINTE
+  de la clé : plus de confusion entre deux installations ;
+- `Lancer-Serveur-Debug.bat` : démarre le serveur en FENÊTRE VISIBLE, l'erreur
+  reste affichée à l'écran (fin des « il ne se passe rien ») ;
+- `Sauvegarder-Base.bat` : dump **+** copie de la clé en un double-clic, sans
+  passer par le client ;
+- `mysqldump` est cherché automatiquement (PATH, puis dossiers MariaDB installés) :
+  le module Sauvegardes du client ne renvoie plus « Erreur 500 » ;
+- le dossier RÉEL des sauvegardes est écrit dans le journal au démarrage
+  (ligne `Sauvegardes : dossier …`), et il est rappelé dans le panneau du client.
+
+A savoir avant de commencer
+---------------------------
+- Les paquets 0.1.0 et 0.1.1 LIVRES contiennent déjà le chiffrement, mais AUCUN
+  dossier « fichiers\ ». Le serveur y créait donc sa propre clé dans
+  <ancien dossier>\serveur\fichiers\cle-chiffrement.key : c'est cet écart qui
+  rendait les listes en erreur 500 après une réinstallation.
+- Une sauvegarde de la base SANS sa clé ne permet PAS de relire les données :
+  dump + cle-chiffrement.key = un seul et même élément de sauvegarde.
+- Le serveur refuse désormais de démarrer (avant même d'ouvrir le port 8420) si
+  la clé ne relit pas les données présentes : c'est un garde-fou, pas une panne.
+
+Etape 1 — Sur le poste, tout arrêter et tout sauvegarder
+--------------------------------------------------------
+1. Demander aux utilisateurs de fermer le client Le Sourire.
+2. Double-cliquer « Arreter-Serveur.bat » (dossier de l'ancienne installation).
+3. Vérifier que le port est libre, dans une invite de commandes :
+       netstat -ano | findstr 8420        (aucune ligne attendue)
+4. Sauvegarder la base (adapter le chemin de mysqldump si besoin) :
+       "C:\Program Files\MariaDB 11.4\bin\mysqldump.exe" -u admin -pcsa-soft ^
+           --single-transaction --routines --triggers lesourire ^
+           > "C:\LeSourire-sauvegardes\lesourire-AVANT-MAJ.sql"
+   (ou, depuis le client : module Sauvegardes ;
+    ou, à partir de la version 0.1.3 : double-clic sur Sauvegarder-Base.bat du
+    paquet neuf, qui écrit le .sql ET la copie de la clé dans le dossier
+    sauvegardes\ — aucune commande à taper)
+5. Copier INTEGRALEMENT l'ancien dossier de l'application vers un dossier
+   d'archive (ex. « C:\LeSourire-archives\avant-MAJ »), en particulier :
+       <ancien>\serveur\fichiers\cle-chiffrement.key   (la clé d'origine)
+       <ancien>\serveur\lesourire-serveur.conf.bat     (identifiants MariaDB)
+       <ancien>\serveur\sauvegardes\                   (dumps 0.1.x)
+       <ancien>\sauvegardes\
+   NE RIEN SUPPRIMER avant la fin de l'étape 6.
+
+Etape 2 — Diagnostic : y a-t-il des données chiffrées ? (lecture seule)
+-----------------------------------------------------------------------
+Ouvrir une invite de commandes dans le dossier de la base et lancer :
+
+    mysql -u admin -p -D lesourire -e "SELECT (SELECT COUNT(*) FROM patient WHERE nom LIKE 'enc:v1:%') AS noms_chiffres, (SELECT COUNT(*) FROM patient) AS patients, (SELECT MAX(version) FROM flyway_schema_history WHERE success=1) AS version_schema;"
+
+  - « noms_chiffres = 0 »  → CAS A : aucune donnée chiffrée, aucune clé à
+    récupérer (voir Etape 3).
+  - « noms_chiffres > 0 »  → CAS B : il faut la clé d'origine (voir Etape 4).
+
+En complément, l'outil livré dans le nouveau paquet établit le diagnostic complet
+(recommandé, il n'écrit rien sans option explicite) :
+    Diagnostic-Chiffrement.bat
+puis envoyer le fichier « DIAGNOSTIC-CHIFFREMENT.txt » au support.
+
+Etape 3 — Installer la version corrigée (cas A : données en clair)
+------------------------------------------------------------------
+1. Décompresser « lesourire-windows-0.1.2.zip » dans un dossier simple et
+   inscriptible, hors « Program Files » et hors OneDrive :
+       C:\LeSourire\lesourire-windows
+2. Recopier la configuration : « serveur\lesourire-serveur.conf.bat » de
+   l'ancien dossier (URL MariaDB, utilisateur, mot de passe, port, réglages
+   Orange SMS). Ne pas écraser celui du nouveau paquet si l'ancien est correct :
+   ouvrir les deux et reporter les valeurs.
+3. Vérifier la présence de « fichiers\cle-chiffrement.key » (fournie avec le
+   paquet, empreinte attendue « 9a09d77d4ec6 » — voir fichiers\EMPREINTE.txt).
+4. Double-cliquer « 1-Demarrer-Serveur.bat » puis lire
+   « serveur\logs\lesourire-serveur.log ». Attendu :
+       « clé lue dans ...\fichiers\cle-chiffrement.key (empreinte 9a09d77d4ec6) »
+       « Clé de chiffrement vérifiée : ... relue(s) sans erreur »
+       migrations V9 à V11 appliquées si elles manquaient
+   En cas de message « AUCUNE clé de chiffrement trouvée » ou « Clé de
+   chiffrement incompatible » : ARRET — ne rien saisir, passer à l'étape 4.
+5. Lancer « 2-Demarrer-LeSourire.bat » (ou « ToutDemarrer.bat ») et contrôler :
+   connexion (admin), liste des patients, fiche patient, agenda, factures.
+6. Modifier puis enregistrer une fiche patient : la donnée est chiffrée à
+   l'enregistrement (conversion progressive, comportement normal).
+7. Sauvegarde immédiate : dump SQL + « fichiers\cle-chiffrement.key » dans le
+   même dossier ; noter l'empreinte dans le dossier du cabinet.
+
+Etape 4 — Récupérer la clé d'origine (cas B : données déjà chiffrées)
+---------------------------------------------------------------------
+1. Récupérer « cle-chiffrement.key » dans l'archive de l'ancien dossier
+   (Etape 1.5). Le fichier fait 44 caractères ; ne pas modifier son contenu
+   (pas d'espace, pas de retour à la ligne ajouté).
+2. La placer dans « <nouveau>\fichiers\cle-chiffrement.key » — et NON ailleurs.
+3. Si le fichier est introuvable : lancer « Diagnostic-Chiffrement.bat », qui
+   explore l'ancien dossier, les dossiers voisins, les téléchargements et les
+   archives ZIP/JAR de la machine, et affiche l'empreinte de chaque clé trouvée.
+4. Redémarrer le serveur et vérifier le journal (Etape 3.4). Deux cas :
+   - la clé d'origine est installée → le serveur démarre et les listes
+     répondent : conserver cette clé comme clé du cabinet (le plus sûr) ;
+   - la base contient des données écrites avec PLUSIEURS clés (réinstallations
+     successives) → unifier avec l'outil, serveur arrêté :
+         Diagnostic-Chiffrement.bat --rechiffrer "fichiers\cle-chiffrement.key" --je-confirme
+     (sauvegarde automatique par mysqldump ; les lignes qu'aucune clé ne relit
+     restent intactes et sont listées pour traitement manuel).
+5. Vérifier ensuite comme aux étapes 3.5 à 3.7.
+
+Etape 5 — Si la clé d'origine reste introuvable
+-----------------------------------------------
+- Ne rien saisir de nouveau dans le client : chaque nouvelle écriture serait
+  chiffrée avec la clé actuelle et l'ancienne clé ne la relirait jamais.
+- Conserver l'archive de l'ancien dossier ET le dump AVANT MAJ : ils sont les
+  seules sources possibles de la clé (fichier, copie de sauvegarde, ZIP d'un
+  paquet précédent, image disque, corbeille Windows).
+- Recherche approfondie à tenter :
+      Diagnostic-Chiffrement.bat --racine "D:\" --profondeur 6 --afficher-cles
+  puis comparer les empreintes avec celles du rapport initial.
+- Les données réellement illisibles restent intactes en base (« enc:v1: »
+  inexploitable) : elles pourront être saisies à nouveau par le cabinet une fois
+  le patient identifié autrement.
+
+Ce qu'il ne faut PAS faire
+--------------------------
+- Ne jamais remplacer « fichiers\cle-chiffrement.key » par la clé d'un autre
+  paquet : les données écrites avec l'ancienne deviendraient illisibles.
+- Ne pas ré-exécuter « sql\01_creer_bd.sql » sur une base existante (inutile :
+  il ne crée que ce qui manque).
+- Ne pas supprimer les fichiers « .sql » des sauvegardes : sans leur clé ils
+  sont inexploitables, mais avec la clé ils redeviennent lisibles.
+- Ne pas déplacer l'installation en laissant « fichiers\ » derrière soi.
+- Ne pas toucher au dossier « jre-windows\ » du paquet.
+
+Retour arrière (rollback)
+-------------------------
+1. Arrêter le serveur (Arreter-Serveur.bat).
+2. Le retour arrière exige DEUX éléments : le dump « AVANT-MAJ » et la clé
+   d'origine.
+3. Restaurer le dump :
+       "C:\Program Files\MariaDB 11.4\bin\mysql.exe" -u admin -pcsa-soft lesourire < "C:\LeSourire-sauvegardes\lesourire-AVANT-MAJ.sql"
+4. Relancer l'ancien dossier archivé (il contient sa clé), uniquement si cela
+   est nécessaire pour l'usage immédiat du cabinet.
+
+Rappel d'exploitation après la mise à jour
+------------------------------------------
+- Les sauvegardes sont écrites dans « <installation>\sauvegardes\ » (côté
+  serveur) et la clé y est copiée automatiquement à côté du dump
+  (« lesourire-<date>.cle-chiffrement.key »).
+- Les versions 0.1.x écrivaient leurs dumps dans « <ancien>\serveur\sauvegardes\ » :
+  vérifier ce dossier lors de la reprise des sauvegardes anciennes.
+- L'empreinte de la clé est journalisée au démarrage : elle doit figurer dans le
+  dossier du cabinet.

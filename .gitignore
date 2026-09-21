@@ -15,7 +15,11 @@ target/
 .DS_Store
 
 # Fichiers locaux d'exécution
-fichiers/
+# La clé de chiffrement, elle, est VERSIONNÉE : elle doit être livrée avec le
+# code, sinon un serveur packagé en génère une autre et rend illisibles les
+# données déjà chiffrées (cf. README, « Chiffrement des données sensibles »).
+fichiers/*
+!fichiers/cle-chiffrement.key
 sauvegardes/
 
 # Packs de déploiement générés

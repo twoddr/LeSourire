@@ -48,11 +48,55 @@ Postes clients supplémentaires
 - Dans l’écran de connexion, ouvrez « Adresse du serveur » :
   http://192.168.1.10:8420
 
-Mise à jour
------------
-Remplacez les fichiers .jar (serveur et client/lib, client/lesourire-client.jar).
-Ne touchez pas à jre-* ni à la configuration MariaDB sauf besoin.
-Flyway applique les migrations au démarrage du serveur.
+Mise à jour (ne jamais remplacer que les .jar)
+----------------------------------------------
+1. Arrêtez le serveur : ./Arreter-Serveur.sh
+2. Sauvegardez la base (le module Sauvegardes du client, ou mysqldump) et
+   vérifiez que « fichiers/cle-chiffrement.key » est bien présent.
+3. Décompressez le nouveau paquet dans un dossier hors « Program Files » et
+   hors OneDrive, puis recopiez votre configuration :
+   serveur/lesourire-serveur.conf.sh (URL MariaDB, identifiants, port).
+4. Conservez telles quelles :
+   - « fichiers/cle-chiffrement.key » : la clé qui relit les données déjà
+     chiffrées. NE LA REMPLACEZ JAMAIS par celle d'un autre paquet ;
+   - le dossier « sauvegardes/ » (et « serveur/sauvegardes/ » des anciennes
+     versions).
+5. Relancez : ./1-Demarrer-Serveur.sh
+   Flyway applique les migrations manquantes. Le serveur refuse de démarrer si
+   la clé ne peut pas relire les données existantes : c'est voulu, cela évite
+   d'écrire des données définitivement illisibles.
+
+Outils de dépannage (livrés avec le paquet)
+-------------------------------------------
+- ./ToutDemarrer.sh : démarre le serveur en arrière-plan, puis le client.
+- ./Lancer-Serveur-Debug.sh : démarre le serveur dans un TERMINAL visible ; tout
+  s'affiche et le message d'erreur reste affiché. À utiliser dès qu'un démarrage
+  échoue, au lieu de chercher dans le journal.
+- ./Sauvegarder-Base.sh : sauvegarde la base (.sql) ET la clé de chiffrement,
+  sans passer par le client. Ces deux fichiers vont toujours ensemble.
+- ./Diagnostic-Chiffrement.sh : inventorie les clés de chiffrement du poste et
+  vérifie que les données sont relisibles (rapport DIAGNOSTIC-CHIFFREMENT.txt).
+- ./Arreter-Serveur.sh : arrête le serveur lancé en arrière-plan.
+
+Au lancement, 1-Demarrer-Serveur.sh affiche le dossier utilisé, la VERSION du
+paquet et l'empreinte de la clé : vous savez toujours quelle installation tourne.
+Le chemin exact du dossier des sauvegardes est écrit au démarrage dans
+serveur/logs/lesourire-serveur.log (ligne « Sauvegardes : dossier … »).
+
+Chiffrement des données sensibles
+---------------------------------
+Les identités et données médicales sont chiffrées en base (AES-256-GCM). La clé
+vit dans « fichiers/cle-chiffrement.key » et DOIT être sauvegardée avec la base :
+sans elle, les données sont définitivement illisibles (une sauvegarde de la base
+seule ne suffit pas). Le dossier « fichiers/ » ne doit jamais être supprimé, ni
+laissé derrière lors d'un changement de dossier.
+
+En cas de doute (erreurs sur les listes, serveur qui refuse de démarrer,
+réinstallation), lancez l'outil de secours :
+    ./Diagnostic-Chiffrement.sh
+Il écrit DIAGNOSTIC-CHIFFREMENT.txt : clés trouvées sur la machine (empreintes),
+compatibilité de chaque colonne, et la marche à suivre. Il ne modifie rien tant
+que vous ne demandez pas « --rechiffrer ... --je-confirme ».
 
 Dépannage
 ---------

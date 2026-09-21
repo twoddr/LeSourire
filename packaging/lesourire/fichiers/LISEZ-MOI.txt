@@ -1,0 +1,35 @@
+LE SOURIRE — DOSSIER fichiers\ : A NE JAMAIS SUPPRIMER
+======================================================
+
+cle-chiffrement.key
+-------------------
+Ce fichier contient la cle qui permet de lire les donnees personnelles et
+medicales stockees chiffrees dans la base MariaDB : identite et coordonnees
+des patients, antecedents, allergies, notes, motifs et notes de rendez-vous,
+observations d'actes, numero d'assure, identite des utilisateurs, contenu des
+rappels et journal d'audit.
+
+SANS CE FICHIER, CES DONNEES SONT DEFINITIVEMENT ILLISIBLES.
+Une sauvegarde de la base de donnees SEULE NE SUFFIT PAS.
+
+Regles a respecter
+------------------
+1. Ne supprimez jamais ce dossier, ni le fichier cle-chiffrement.key.
+2. Sauvegardez ce fichier EN MEME TEMPS que la base (meme date, meme support).
+   Le module Sauvegardes du client le copie automatiquement a cote du fichier
+   .sql : verifiez qu'il y est bien.
+3. Pour deplacer ou reinstancier l'installation, copiez le dossier COMPLET, y
+   compris fichiers\. Ne decompressez jamais un nouveau paquet ailleurs en
+   laissant l'ancienne cle derriere vous.
+4. Si le client affiche des erreurs sur les listes, ou si le serveur refuse de
+   demarrer en parlant de cle incompatible : n'effacez RIEN, ne saisissez plus
+   de donnees, lancez Diagnostic-Chiffrement.bat (.sh) et transmettez le rapport
+   DIAGNOSTIC-CHIFFREMENT.txt au support.
+5. Ce fichier doit rester lisible par le seul compte Windows du cabinet.
+
+L'empreinte de la cle utilisee est indiquee par le serveur au demarrage, dans
+serveur\logs\lesourire-serveur.log :
+    « cle lue dans ...\fichiers\cle-chiffrement.key (empreinte xxxxxxxxxxxx) »
+Notez cette empreinte dans le dossier du cabinet : elle permet de verifier en
+une seconde que la sauvegarde de la cle correspond bien a celle qui a ecrit les
+donnees.

@@ -184,6 +184,52 @@ sur_exit() {
 }
 trap sur_exit EXIT
 
+# ---------------------------------------------------------------------------
+# Garde-fou des lanceurs Windows. Un .bat fautif ne produit AUCUN message chez
+# le client : le serveur est lance sans fenetre (javaw.exe) et meurt avant même
+# de creer son journal. Deux pieges deja rencontres en production :
+#   1. apostrophe non appariee sur une ligne powershell        -> erreur de syntaxe ;
+#   2. chemin (%~dp0) place dans -ArgumentList : PowerShell recolle les elements
+#      sans guillemets, donc un chemin contenant un espace coupe l'argument.
+# ---------------------------------------------------------------------------
+verifier_lanceurs_bat() {
+    local fichier ligne n echec=0
+    for fichier in "${PACKAGING}"/*.bat "${PACKAGING}/serveur"/*.bat; do
+        [ -f "${fichier}" ] || continue
+        while IFS= read -r ligne; do
+            ligne="${ligne%$'\r'}"
+            case "${ligne}" in
+                *-ArgumentList*)
+                    case "${ligne}" in
+                        *'%~dp0'*)
+                            echo "ERREUR: ${fichier} : -ArgumentList contient %~dp0."
+                            echo "        Un chemin avec un espace couperait l'argument (serveur muet)."
+                            echo "        ${ligne}"
+                            echec=1
+                            ;;
+                    esac
+                    ;;
+            esac
+            case "${ligne}" in
+                *[Pp]owershell*)
+                    n="$(printf '%s' "${ligne}" | tr -cd "'" | wc -c)"
+                    if [ $(( n % 2 )) -ne 0 ]; then
+                        echo "ERREUR: ${fichier} : ${n} apostrophes (nombre impair) sur une ligne powershell."
+                        echo "        ${ligne}"
+                        echec=1
+                    fi
+                    ;;
+            esac
+        done < "${fichier}"
+    done
+    if [ "${echec}" -ne 0 ]; then
+        echo
+        echo "Corrigez ces lignes avant d'assembler : sinon le lanceur ne dira rien chez le client."
+        exit 1
+    fi
+    echo "    lanceurs .bat verifies (apostrophes appariees, aucun -ArgumentList avec %~dp0)"
+}
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT_WIN="${ROOT}/out/executables/lesourire-windows"
 OUT_UNIX="${ROOT}/out/executables/lesourire-mac-linux"
@@ -208,6 +254,9 @@ if [ -z "${JFX_VERSION}" ]; then
     echo "Impossible de lire javafx.version dans pom.xml"
     exit 1
 fi
+
+echo "==> Controle des lanceurs Windows (.bat)"
+verifier_lanceurs_bat
 
 echo "==> Compilation Maven propre (clean install)"
 notifier_debut
@@ -281,15 +330,47 @@ verifier_classe() {
     fi
 }
 
+# La clé de chiffrement fait partie du paquet : sans elle, un serveur packagé en
+# génère une autre et rend illisibles les données déjà chiffrées. On la copie
+# donc avec son mode d'emploi et l'empreinte courte que le serveur journalise.
+copier_fichiers_cle() {
+    local dest="$1"
+    local cle="${ROOT}/fichiers/cle-chiffrement.key"
+    if [ ! -s "${cle}" ]; then
+        echo "ERREUR: ${cle} est absent ou vide."
+        echo "       Cette clé est indispensable : un paquet livré sans elle rend"
+        echo "       les données patient illisibles (voir README, chiffrement)."
+        exit 1
+    fi
+    mkdir -p "${dest}/fichiers"
+    cp -f "${cle}" "${dest}/fichiers/cle-chiffrement.key"
+    cp -f "${PACKAGING}/fichiers/LISEZ-MOI.txt" "${dest}/fichiers/LISEZ-MOI.txt"
+    # Empreinte courte = SHA-256 des octets de la clé, 6 premiers octets en hexa
+    # (même calcul que com.lesourire.serveur.crypto.Chiffrement.empreinte).
+    local empreinte
+    empreinte="$(tr -d '\r\n' < "${cle}" | base64 -d 2>/dev/null | sha256sum | cut -c1-12)"
+    if [ -z "${empreinte}" ]; then
+        echo "ERREUR: clé de chiffrement illisible (base64 attendu) : ${cle}"
+        exit 1
+    fi
+    {
+        echo "Empreinte courte de la clé de chiffrement : ${empreinte}"
+        echo "(valeur journalisée par le serveur au démarrage et par Diagnostic-Chiffrement)"
+    } > "${dest}/fichiers/EMPREINTE.txt"
+    echo "    clé de chiffrement copiée (empreinte ${empreinte})"
+}
+
 copier_artefacts() {
     local dest="$1"
-    mkdir -p "${dest}/serveur" "${dest}/client/lib" "${dest}/sql" "${dest}/sauvegardes"
+    mkdir -p "${dest}/serveur" "${dest}/client/lib" "${dest}/sql" "${dest}/sauvegardes" \
+        "${dest}/fichiers"
     cp -f "${SERVEUR_JAR}" "${dest}/serveur/lesourire-serveur.jar"
     cp -f "${CLIENT_JAR}" "${dest}/client/lesourire-client.jar"
     rm -f "${dest}/client/lib/"*.jar
     cp -f "${LIB_STAGE}/"*.jar "${dest}/client/lib/"
     cp -f "${PACKAGING}/sql/01_creer_bd.sql" "${dest}/sql/"
     : > "${dest}/sauvegardes/.gitkeep"
+    copier_fichiers_cle "${dest}"
 
     cmp -s "${COMMUN_JAR}" "${dest}/client/lib/lesourire-commun-${VERSION}.jar" \
         || { echo "ERREUR: lesourire-commun assemblé ≠ commun/target"; exit 1; }
@@ -311,6 +392,9 @@ copier_artefacts() {
             "${dest}/serveur/lesourire-serveur.jar" \
             "${dest}/client/lesourire-client.jar" \
             "${dest}/client/lib/lesourire-commun-${VERSION}.jar"
+        echo
+        echo "Clé de chiffrement (fichiers/cle-chiffrement.key) — à sauvegarder avec la base :"
+        cat "${dest}/fichiers/EMPREINTE.txt"
     } > "${dest}/BUILD-INFO.txt"
 }
 
@@ -324,6 +408,9 @@ cp -f "${PACKAGING}/2-Demarrer-LeSourire.bat" "${OUT_WIN}/"
 cp -f "${PACKAGING}/2-Demarrer-LeSourire-debug.bat" "${OUT_WIN}/"
 cp -f "${PACKAGING}/ToutDemarrer.bat" "${OUT_WIN}/"
 cp -f "${PACKAGING}/Arreter-Serveur.bat" "${OUT_WIN}/"
+cp -f "${PACKAGING}/Diagnostic-Chiffrement.bat" "${OUT_WIN}/"
+cp -f "${PACKAGING}/Lancer-Serveur-Debug.bat" "${OUT_WIN}/"
+cp -f "${PACKAGING}/Sauvegarder-Base.bat" "${OUT_WIN}/"
 rm -f "${OUT_WIN}"/*.sh "${OUT_WIN}/serveur/"*.sh
 rm -rf "${OUT_WIN}/client/javafx-linux" "${OUT_WIN}/client/javafx-mac" \
     "${OUT_WIN}/client/javafx-mac-aarch64" "${OUT_WIN}/jre-linux" "${OUT_WIN}/jre-mac"
@@ -353,12 +440,18 @@ cp -f "${PACKAGING}/2-Demarrer-LeSourire.sh" "${OUT_UNIX}/"
 cp -f "${PACKAGING}/2-Demarrer-LeSourire-debug.sh" "${OUT_UNIX}/"
 cp -f "${PACKAGING}/ToutDemarrer.sh" "${OUT_UNIX}/"
 cp -f "${PACKAGING}/Arreter-Serveur.sh" "${OUT_UNIX}/"
+cp -f "${PACKAGING}/Diagnostic-Chiffrement.sh" "${OUT_UNIX}/"
+cp -f "${PACKAGING}/Lancer-Serveur-Debug.sh" "${OUT_UNIX}/"
+cp -f "${PACKAGING}/Sauvegarder-Base.sh" "${OUT_UNIX}/"
 chmod +x "${OUT_UNIX}/runtime-unix.sh" \
     "${OUT_UNIX}/1-Demarrer-Serveur.sh" \
     "${OUT_UNIX}/2-Demarrer-LeSourire.sh" \
     "${OUT_UNIX}/2-Demarrer-LeSourire-debug.sh" \
     "${OUT_UNIX}/ToutDemarrer.sh" \
-    "${OUT_UNIX}/Arreter-Serveur.sh"
+    "${OUT_UNIX}/Arreter-Serveur.sh" \
+    "${OUT_UNIX}/Diagnostic-Chiffrement.sh" \
+    "${OUT_UNIX}/Lancer-Serveur-Debug.sh" \
+    "${OUT_UNIX}/Sauvegarder-Base.sh"
 rm -f "${OUT_UNIX}"/*.bat "${OUT_UNIX}/serveur/"*.bat
 rm -rf "${OUT_UNIX}/client/javafx-windows" "${OUT_UNIX}/jre-windows"
 if [ ! -f "${OUT_UNIX}/serveur/lesourire-serveur.conf.sh" ]; then
@@ -385,6 +478,9 @@ echo "OK — deux dossiers prêts (artefacts = target du build courant) :"
 echo "  ${OUT_WIN}"
 echo "  ${OUT_UNIX}"
 echo
+echo "Chaque paquet contient fichiers/cle-chiffrement.key : ce dossier part AVEC le"
+echo "paquet et ne doit jamais être supprimé chez le client (données illisibles)."
+echo
 if [ -d "${ANCIEN}" ]; then
     echo "Note : l'ancien dossier mixte n'est plus produit :"
     echo "  ${ANCIEN}"
@@ -396,3 +492,4 @@ echo "  1. Vérifier/copier les JRE 21 (jre-windows, jre-linux, jre-mac)"
 echo "  2. Adapter serveur/lesourire-serveur.conf.* dans chaque paquet"
 echo "  3. Première install BD : sql/01_creer_bd.sql"
 echo "  4. Zipper le dossier correspondant à l'OS du client"
+echo "  5. Conserver fichiers/cle-chiffrement.key avec la sauvegarde du client"

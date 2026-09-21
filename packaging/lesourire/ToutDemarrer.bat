@@ -81,7 +81,12 @@ echo Le processus du serveur ^(PID !SERVEUR_PID!^) s'est arrete pendant le demar
 echo Causes les plus frequentes :
 echo   - MariaDB ^(ou MySQL^) n'est pas demarre sur ce poste ;
 echo   - URL ou identifiants incorrects dans serveur\lesourire-serveur.conf.bat ;
-echo   - le port !PORT! est deja utilise par une autre application.
+echo   - la cle de chiffrement ^(fichiers\cle-chiffrement.key^) ne correspond pas
+echo     aux donnees de la base : le serveur refuse alors de demarrer, c'est voulu ;
+echo   - un autre serveur occupe deja le port !PORT!.
+echo.
+echo Pour voir l'erreur exacte : lancez Lancer-Serveur-Debug.bat
+echo ^(fenetre visible, le message d'erreur reste affiche a l'ecran^).
 echo.
 echo Dernieres lignes du journal ^(serveur\logs\lesourire-serveur.log^) :
 echo ---------------------------------------------------------------
