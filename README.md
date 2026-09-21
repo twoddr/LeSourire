@@ -66,9 +66,14 @@ démonstration** qui présente l'interface sans serveur.
 
 Configuration du serveur par variables d'environnement :
 `LESOURIRE_BD_URL`, `LESOURIRE_BD_UTILISATEUR`, `LESOURIRE_BD_MOT_DE_PASSE`,
-`LESOURIRE_PORT` (défaut : `8420`), `LESOURIRE_CHIFFREMENT_CLE` (clé de
-chiffrement en base64) et `LESOURIRE_CHIFFREMENT_FICHIER` (défaut :
-`fichiers/cle-chiffrement.key`). Pour l'envoi réel des SMS, voir
+`LESOURIRE_PORT` (défaut : `8420`), `LESOURIRE_HOME` (racine du paquet ; les
+lanceurs la transmettent aussi en `-Dlesourire.home` et elle sert à retrouver
+`fichiers/cle-chiffrement.key` quel que soit le répertoire de travail),
+`LESOURIRE_CHIFFREMENT_CLE` (clé de chiffrement en base64),
+`LESOURIRE_CHIFFREMENT_FICHIER` (chemin imposé de la clé — **vide par défaut** :
+le serveur cherche alors `fichiers/cle-chiffrement.key` autour du paquet) et
+`LESOURIRE_MYSQLDUMP` (chemin de `mysqldump` si MariaDB n'est pas dans le PATH).
+Pour l'envoi réel des SMS, voir
 `LESOURIRE_ORANGE_*` dans « Notifications patients » ci-dessous.
 
 ## Base de données
@@ -103,27 +108,87 @@ par Flyway :
 - `V10__notifications_patients.sql` — notifications patients : canal préféré et
   consentement sur la fiche patient, nouveau type de rappel `CONFIRMATION_RDV`
   (envoyé dès la prise de rendez-vous) et paramètres `notification.*` (voir
-  « Notifications patients » ci-dessous).
+  « Notifications patients » ci-dessous) ;
+- `V11__rappel_un_jour_avant.sql` — le rappel de rendez-vous part la veille
+  (J‑1) au lieu de J‑2 (`rappel.jours_avant_rdv`, modifiable dans Paramètres).
 
 ### Chiffrement des données sensibles
 
 L'application chiffre **au repos** (AES‑256‑GCM) les données personnelles et
 médicales : identité et coordonnées des patients, antécédents/allergies/notes,
 motifs et notes de rendez‑vous, observations d'actes, identité et coordonnées
-des utilisateurs, numéro d'assuré, contenu des rappels et journal d'audit. Le
-format stocké est `enc:v1:<base64>` ; une valeur historique non préfixée (en
-clair) reste lisible et est chiffrée à sa prochaine modification.
+des utilisateurs, numéro d'assuré, contenu des rappels et journal d'audit
+(28 colonnes ; inventaire de référence : `ColonnesChiffrees`). Le format stocké
+est `enc:v1:<base64>` ; une valeur historique non préfixée (en clair) reste
+lisible et est chiffrée à sa prochaine modification.
 
-La clé provient, dans l'ordre : de `lesourire.chiffrement.cle`
-(`LESOURIRE_CHIFFREMENT_CLE`, base64) ; sinon du fichier indiqué par
-`lesourire.chiffrement.fichier` (`fichiers/cle-chiffrement.key` par défaut) ;
-sinon elle est générée à la première exécution dans ce fichier. **Sauvegardez ce
-fichier avec la base de données** : sans lui, les données chiffrées sont
-définitivement illisibles (une sauvegarde de la base seule ne suffit pas).
+La clé (`fichiers/cle-chiffrement.key`) est **versionnée dans le dépôt** et
+livrée dans chaque paquet : sans cela, un serveur packagé en générerait une autre
+et rendrait illisibles les données déjà chiffrées — c'est exactement l'incident
+corrigé ici. Pour un autre cabinet, on remplace ce fichier avant d'assembler les
+paquets. La clé est résolue dans l'ordre suivant :
+
+1. `lesourire.chiffrement.cle` (`LESOURIRE_CHIFFREMENT_CLE`, base64) ;
+2. le fichier indiqué par `lesourire.chiffrement.fichier`, s'il est renseigné
+   (chemin relatif résolu depuis la racine du paquet) ;
+3. `fichiers/cle-chiffrement.key`, cherché de façon **déterministe** autour de
+   l'installation : racine transmise par les lanceurs (`-Dlesourire.home`),
+   dossier du JAR et ses parents, répertoire courant et ses parents ;
+   l'emplacement hérité `serveur/fichiers/cle-chiffrement.key` des paquets
+   Windows 0.1.x reste accepté ;
+4. à défaut, une clé est générée dans `<installation>/fichiers/` : ce cas est
+   journalisé en **ERREUR**, car il rend illisibles les données existantes.
+
+**Sauvegardez ce fichier avec la base de données** : sans lui, les données
+chiffrées sont définitivement illisibles (une sauvegarde SQL seule ne suffit
+pas). Le module Sauvegardes copie automatiquement la clé à côté du dump, et le
+dossier `fichiers/` contient un `LISEZ-MOI.txt` à l'attention du cabinet.
+
+Deux garde‑fous accompagnent ce mécanisme :
+
+- `VerificateurCleChiffrement` relit au démarrage un échantillon de chaque
+  colonne chiffrée et **refuse de lancer le serveur** si la clé active ne peut
+  pas les déchiffrer, en indiquant la colonne fautive, l'empreinte de la clé et
+  la marche à suivre ;
+- l'outil de secours `Diagnostic-Chiffrement.bat` / `.sh`, embarqué dans les
+  paquets, inventorie les clés présentes sur la machine (fichiers, variables
+  d'environnement et **archives ZIP/JAR**, donc les paquets successifs), établit
+  la compatibilité colonne par colonne, exporte la clé qui relit les données et
+  peut réchiffrer la base vers une clé unique
+  (`--rechiffrer <clé|fichier> --je-confirme` : sauvegarde obligatoire, refus si
+  le serveur tourne, lignes illisibles laissées intactes). Rapport :
+  `DIAGNOSTIC-CHIFFREMENT.txt`, sans aucune donnée patient.
 
 Comme le nom, le prénom et les téléphones sont chiffrés, la recherche patient /
 utilisateur / facture ne se fait plus en SQL mais **en mémoire**, sur les
 valeurs déchiffrées (volumes d'un cabinet : largement suffisant).
+
+### Sauvegardes
+
+Le module Sauvegardes du client — et le script `Sauvegarder-Base.bat` / `.sh`
+livré dans les paquets — écrit un dump `mysqldump` **et copie la clé de
+chiffrement à côté** : une sauvegarde de la base seule ne permet pas de relire
+les données. Les deux fichiers vont toujours ensemble.
+
+- **dossier d'écriture** : paramètre `sauvegarde.dossier` (table `parametre`,
+  Administration → Paramètres) ; relatif, il est résolu depuis la **racine du
+  paquet** (et non plus depuis le répertoire de travail), et le dossier retenu
+  est journalisé au démarrage : `Sauvegardes : dossier …` ;
+- **programme `mysqldump`** : résolu par `lesourire.sauvegarde.mysqldump`
+  (`LESOURIRE_MYSQLDUMP`), sinon par le `PATH`, sinon dans les dossiers
+  d'installation MariaDB/MySQL (`C:\Program Files\MariaDB *\bin\mysqldump.exe`,
+  `/usr/bin`, `/usr/local/bin`…) — inutile de modifier le `PATH` de Windows ;
+- toute erreur est remontée avec son message exact (chemin cherché, sortie de
+  `mysqldump`) au lieu d'un « 500 » opaque.
+
+Scripts livrés dans chaque paquet : `ToutDemarrer` (serveur + client),
+`Lancer-Serveur-Debug` (serveur en fenêtre/terminal visible, erreur affichée),
+`Sauvegarder-Base` (dump + clé), `Diagnostic-Chiffrement` (inventaire des clés),
+`Arreter-Serveur`. Les lanceurs affichent la **version du paquet** et
+l'**empreinte de la clé**, acceptent un chemin contenant des espaces, et
+l'assembleur vérifie automatiquement les lanceurs `.bat` (apostrophes appariées,
+aucun chemin variable dans un `-ArgumentList`) pour qu'une faute de ce genre ne
+puisse plus être livrée.
 
 ### Notifications patients (SMS, WhatsApp, e-mail)
 
@@ -207,6 +272,28 @@ appliqué automatiquement chez le client à la mise à jour du serveur.
 Pour créer la base **sans passer par le serveur** (import direct MariaDB) :
 `scripts/lesourire_complet.sql` contient tout le schéma V1→V10, les données
 initiales et l'historique Flyway (le serveur démarre dessus sans rien rejouer).
+
+## Factures PDF
+
+L'aperçu / impression d'une facture est un PDF **A4 généré depuis un template
+HTML** (`client/src/main/resources/templates/facture.html`) rendu par
+OpenHTMLtoPDF, avec la police DejaVu embarquée (`client/src/main/resources/fonts/`)
+et le logo du cabinet (`client/src/main/resources/images/logo.png`) : la mise en
+page se peaufine donc dans le CSS du template, sans toucher au code Java
+(`FacturePdf`, qui ne fait que l'alimenter et l'écrire).
+
+L'identité du cabinet figure sur **chaque page** :
+
+- en tête de la 1re page, à droite du logo : `CABINET DENTAIRE LE SOURIRE`,
+  `Docteur Nadine TOWE`, `Chirurgien Dentiste`, diplôme (UFR d'Odonto –
+  Stomatologie d'Abidjan, Côte d'Ivoire) et téléphones ;
+- en pied de toutes les pages (élément répété par `@page { @bottom-center }`),
+  suivi du numéro de page `Page n / N` ;
+- les pages 2 et suivantes rappellent seulement le logo + `Facture n° — patient`.
+
+Ces coordonnées sont définies une seule fois, dans les constantes `CABINET_*` de
+`FacturePdf` (le template se contente de les mettre en forme). Elles recoupent
+les paramètres `cabinet.*` de la base, qui pourront les alimenter plus tard.
 
 ## Feuille de route
 
