@@ -51,7 +51,10 @@ public class SauvegardesPanneau {
     private void construire() {
         racine.setPadding(new Insets(16, 0, 0, 0));
         Label aide = new Label(
-                "Les fichiers sont écrits dans le dossier défini par le paramètre sauvegarde.dossier.");
+                "Les fichiers sont écrits dans le dossier défini par le paramètre sauvegarde.dossier. "
+                        + "Le chemin exact est indiqué au démarrage du serveur "
+                        + "(serveur\\logs\\lesourire-serveur.log), et la clé de chiffrement y est "
+                        + "copiée à côté de chaque sauvegarde : conservez les deux ensemble.");
         aide.setWrapText(true);
         aide.getStyleClass().add("note-discrete");
         Button actualiser = new Button();
