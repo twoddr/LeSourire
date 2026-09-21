@@ -25,13 +25,29 @@ server:
 lesourire:
   # Chiffrement au repos des données sensibles (AES-256-GCM).
   # - cle : clé en base64 (16/24/32 octets). Vide = lecture (ou création) du
-  #   fichier ci-dessous.
-  # - fichier : emplacement de la clé lorsque l'environnement n'en fournit pas.
+  #   fichier de clé de l'installation (voir ChiffrementConfig).
+  # - fichier : emplacement imposé de la clé. Laisser VIDE pour laisser le
+  #   serveur chercher fichiers/cle-chiffrement.key autour du paquet (racine
+  #   -Dlesourire.home, dossier du JAR, répertoire courant) : c'est le réglage
+  #   recommandé, il résiste aux changements de dossier et aux mises à jour.
   # La clé DOIT être sauvegardée avec la base : sans elle, les données
   # (identité et dossier médical des patients) sont définitivement illisibles.
+  # Au démarrage, le serveur refuse de se lancer si la clé ne peut pas relire
+  # les données existantes (voir VerificateurCleChiffrement).
   chiffrement:
     cle: ${LESOURIRE_CHIFFREMENT_CLE:}
-    fichier: ${LESOURIRE_CHIFFREMENT_FICHIER:fichiers/cle-chiffrement.key}
+    fichier: ${LESOURIRE_CHIFFREMENT_FICHIER:}
+
+  # Sauvegardes de la base (module Sauvegardes du client, Sauvegarder-Base.bat).
+  # - mysqldump : chemin explicite du programme, utile quand MariaDB n'est pas
+  #   dans le PATH de Windows (ex. C:\Program Files\MariaDB 11.4\bin\mysqldump.exe).
+  #   Vide = recherche automatique : PATH, puis dossiers MariaDB/MySQL installés.
+  # - dossier : le dossier d'écriture est le paramètre `sauvegarde.dossier`
+  #   (table `parametre`, modifiable dans Administration → Paramètres) ; relatif,
+  #   il est résolu depuis la racine du paquet. Le dossier retenu est écrit dans
+  #   le journal au démarrage du serveur.
+  sauvegarde:
+    mysqldump: ${LESOURIRE_MYSQLDUMP:}
 
   # Notifications aux patients (confirmation de RDV, rappel la veille).
   # Les réglages métier (activation, fournisseur, expéditeur…) vivent dans la
