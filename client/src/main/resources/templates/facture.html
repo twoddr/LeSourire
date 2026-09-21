@@ -8,7 +8,9 @@
            OpenHTMLtoPDF : CSS classique (tables, float), pas de flex/grid modernes. */
         @page {
             size: A4;
-            margin: 2.2cm 1.4cm 1.8cm 1.4cm;
+            /* Bas : place pour le bloc d'identité du cabinet + le n° de page
+               (cf. .pied-page, répété sur chaque page) */
+            margin: 2.2cm 1.4cm 2.6cm 1.4cm;
             @top-center {
                 content: element(entete-courant);
             }
@@ -17,7 +19,8 @@
             }
         }
         @page :first {
-            margin-top: 1cm;
+            /* Page 1 : l'identité du cabinet (logo + coordonnées) remplace la bannière */
+            margin-top: 1.2cm;
             @top-center {
                 content: none;
             }
@@ -33,6 +36,8 @@
             line-height: 1.35;
         }
 
+        /* Rappel du document, en haut des pages 2 et suivantes
+           (page 1 : bloc d'identité ci-dessous). */
         .entete-courant {
             position: running(entete-courant);
             font-size: 8.5pt;
@@ -46,28 +51,70 @@
             vertical-align: middle;
             margin-right: 6pt;
         }
+
+        /* Identité du cabinet, répétée en pied de CHAQUE page (cf. @page). */
         .pied-page {
             position: running(pied-page);
-            font-size: 8pt;
-            color: #666;
+            font-size: 7.5pt;
+            line-height: 1.3;
+            color: #555;
             border-top: 0.5pt solid #c5c5c5;
             padding-top: 4pt;
             text-align: center;
             width: 100%;
         }
+        .pied-page .pied-nom {
+            font-weight: bold;
+            color: #2a6f6a;
+        }
         .pied-page::after {
-            content: " · p. " counter(page) " / " counter(pages);
+            content: "Page " counter(page) " / " counter(pages);
+            color: #888;
         }
 
-        .banniere {
+        /* En-tête de la 1re page : logo + coordonnées du cabinet (ex-bannière). */
+        .identite-bloc {
+            border-bottom: 1pt solid #2a6f6a;
+            margin-bottom: 20pt;
+        }
+        table.identite {
             width: 100%;
-            max-height: 72pt;
-            display: block;
-            margin-bottom: 10pt;
+            border-collapse: collapse;
+        }
+        table.identite td {
+            border: none;
+            padding: 0;
+            vertical-align: middle;
+        }
+        td.identite-logo {
+            width: 82pt;
+        }
+        img.logo {
+            height: 66pt;
+        }
+        .cabinet-nom {
+            font-size: 13pt;
+            font-weight: bold;
+            color: #2a6f6a;
+            letter-spacing: 0.3pt;
+        }
+        .cabinet-praticien {
+            font-size: 11pt;
+            font-weight: bold;
+            margin-top: 2pt;
+        }
+        .cabinet-detail {
+            font-size: 9pt;
+            color: #333;
+        }
+        .cabinet-contact {
+            font-size: 9pt;
+            color: #333;
+            margin-top: 2pt;
         }
 
         .titre-bloc {
-            margin: 6pt 0 12pt 0;
+            margin: 6pt 0 18pt 0;
         }
         .titre-bloc h1 {
             font-size: 16pt;
@@ -185,15 +232,39 @@
 </head>
 <body>
 
+<!-- Rappel du document, répété en haut des pages 2 et suivantes -->
 <div class="entete-courant">
     <img class="logo-mini" th:src="${logoUri}" alt=""/>
-    Cabinet Dentaire Le Sourire
-    — <span th:text="${numero}">FA-…</span>
+    Facture <span th:text="${numero}">FA-…</span>
+    — <span th:text="${patientNom}">—</span>
 </div>
 
-<div class="pied-page">Cabinet Dentaire Le Sourire · Douala</div>
+<!-- Identité du cabinet, répétée en pied de CHAQUE page -->
+<div class="pied-page">
+    <div>
+        <span class="pied-nom" th:text="${cabinetNom}">CABINET DENTAIRE LE SOURIRE</span>
+        — <span th:text="${cabinetPraticien}">Docteur Nadine TOWE</span>,
+        <span th:text="${cabinetSpecialite}">Chirurgien Dentiste</span>
+    </div>
+    <div th:text="${cabinetDiplome}">Diplômée de l’UFR d’Odonto – Stomatologie d’Abidjan, Côte d’Ivoire</div>
+    <div th:text="${'Tél : ' + cabinetTelephones}">Tél : (237) 233 431 411 / 686 339 308 / 671 512 971</div>
+</div>
 
-<img class="banniere" th:src="${banniereUri}" alt="Le Sourire"/>
+<!-- En-tête de la 1re page : logo + coordonnées du cabinet (à la place de la bannière) -->
+<div class="identite-bloc">
+    <table class="identite">
+        <tr>
+            <td class="identite-logo"><img class="logo" th:src="${logoUri}" alt="Le Sourire"/></td>
+            <td>
+                <div class="cabinet-nom" th:text="${cabinetNom}">CABINET DENTAIRE LE SOURIRE</div>
+                <div class="cabinet-praticien" th:text="${cabinetPraticien}">Docteur Nadine TOWE</div>
+                <div class="cabinet-detail" th:text="${cabinetSpecialite}">Chirurgien Dentiste</div>
+                <div class="cabinet-detail" th:text="${cabinetDiplome}">Diplômée de l’UFR d’Odonto – Stomatologie d’Abidjan, Côte d’Ivoire</div>
+                <div class="cabinet-contact" th:text="${'Tél : ' + cabinetTelephones}">Tél : (237) 233 431 411 / 686 339 308 / 671 512 971</div>
+            </td>
+        </tr>
+    </table>
+</div>
 
 <div class="titre-bloc">
     <h1>FACTURE</h1>

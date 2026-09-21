@@ -25,11 +25,8 @@
 
 .badge-logo {
     -fx-background-color: -ls-accent;
-    -fx-text-fill: white;
-    -fx-font-size: 22px;
-    -fx-font-weight: bold;
-    -fx-background-radius: 14;
-    -fx-padding: 12 16 12 16;
+    -fx-background-radius: 16;
+    -fx-padding: 10;
 }
 
 .titre-application {

@@ -48,6 +48,21 @@ public final class FacturePdf {
     private static final String MODELE = chargerRessourceTexte("/templates/facture.html");
     private static volatile boolean pdfBoxPret;
 
+    // ------------------------------------------------------------------------
+    // Identité du cabinet imprimée sur chaque facture : en-tête de la 1re page
+    // (à la place de l'ancienne bannière) et pied de CHAQUE page.
+    // Source unique : modifier ici pour changer les coordonnées affichées.
+    // (À terme, ces valeurs pourraient être lues dans les paramètres
+    // « cabinet.* » de la base : elles n'y sont pas encore toutes.)
+    // ------------------------------------------------------------------------
+    private static final String CABINET_NOM = "CABINET DENTAIRE LE SOURIRE";
+    private static final String CABINET_PRATICIEN = "Docteur Nadine TOWE";
+    private static final String CABINET_SPECIALITE = "Chirurgien Dentiste";
+    private static final String CABINET_DIPLOME =
+            "Diplômée de l’UFR d’Odonto – Stomatologie d’Abidjan, Côte d’Ivoire";
+    private static final String CABINET_TELEPHONES =
+            "(237) 233 431 411 / 686 339 308 / 671 512 971";
+
     private FacturePdf() {
     }
 
@@ -134,8 +149,12 @@ public final class FacturePdf {
                         ? null
                         : f.patientNumeroDossier);
 
-        ctx.setVariable("banniereUri", "banniere.png");
         ctx.setVariable("logoUri", "logo.png");
+        ctx.setVariable("cabinetNom", CABINET_NOM);
+        ctx.setVariable("cabinetPraticien", CABINET_PRATICIEN);
+        ctx.setVariable("cabinetSpecialite", CABINET_SPECIALITE);
+        ctx.setVariable("cabinetDiplome", CABINET_DIPLOME);
+        ctx.setVariable("cabinetTelephones", CABINET_TELEPHONES);
 
         List<LigneVue> lignes = new ArrayList<>();
         if (f.lignes != null) {

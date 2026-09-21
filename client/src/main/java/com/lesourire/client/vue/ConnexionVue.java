@@ -21,7 +21,10 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TitledPane;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
@@ -59,8 +62,14 @@ public class ConnexionVue {
         racine.getStyleClass().add("fond-connexion");
 
         // En-tête
-        Label badge = new Label("LS");
+        ImageView logo = new ImageView(new Image(
+                getClass().getResource("/images/logo.png").toExternalForm()));
+        logo.setPreserveRatio(true);
+        logo.setSmooth(true);
+        logo.setFitWidth(56);
+        StackPane badge = new StackPane(logo);
         badge.getStyleClass().add("badge-logo");
+        badge.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         Label titre = new Label("Le Sourire");
         titre.getStyleClass().add("titre-application");
         Label sousTitre = new Label("Cabinet Dentaire — Douala");
