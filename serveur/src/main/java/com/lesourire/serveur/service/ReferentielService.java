@@ -112,16 +112,22 @@ public class ReferentielService {
 
     private void appliquerAssureur(Assureur a, AssureurDTO dto) {
         a.setNom(dto.nom().trim());
+        a.setNiu(videSiBlank(dto.niu()));
+        a.setContactNom(videSiBlank(dto.contactNom()));
         a.setTelephone(videSiBlank(dto.telephone()));
         a.setEmail(videSiBlank(dto.email()));
+        a.setAdresse(videSiBlank(dto.adresse()));
         a.setPourcentageDefaut(pourcentage(dto.pourcentageDefaut()));
         a.setActif(dto.actif());
     }
 
     private void appliquerSociete(Societe s, SocieteDTO dto) {
         s.setNom(dto.nom().trim());
+        s.setNiu(videSiBlank(dto.niu()));
+        s.setContactNom(videSiBlank(dto.contactNom()));
         s.setTelephone(videSiBlank(dto.telephone()));
         s.setEmail(videSiBlank(dto.email()));
+        s.setAdresse(videSiBlank(dto.adresse()));
         s.setPourcentageDefaut(pourcentage(dto.pourcentageDefaut()));
         s.setActif(dto.actif());
     }

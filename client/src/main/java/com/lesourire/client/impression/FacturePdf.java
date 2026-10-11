@@ -26,6 +26,8 @@ import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.StringTemplateResolver;
 
 import com.lesourire.client.coeur.Montants;
+import com.lesourire.commun.Facturation.DestinataireFacture;
+import com.lesourire.commun.Facturation.Payeur;
 import com.lesourire.commun.Facturation.StatutFacture;
 import com.lesourire.commun.dto.FactureDTO;
 import com.lesourire.commun.dto.FactureLigneDTO;
@@ -110,8 +112,17 @@ public final class FacturePdf {
     }
 
     public static void ecrire(FactureDTO facture, Path destination) throws IOException {
+        ecrire(facture, destination, false);
+    }
+
+    /**
+     * Écrit le PDF de la facture. {@code copiePatient} marque le document
+     * « Copie patient » : utile lorsque l'original est adressé au tiers payant.
+     */
+    public static void ecrire(FactureDTO facture, Path destination, boolean copiePatient)
+            throws IOException {
         preparerEnvironnementPdf();
-        String html = rendreHtml(facture);
+        String html = rendreHtml(facture, copiePatient);
         URL images = FacturePdf.class.getResource("/images/");
         if (images == null) {
             throw new IOException("Ressources images introuvables (classpath /images/).");
@@ -135,7 +146,7 @@ public final class FacturePdf {
         }
     }
 
-    private static String rendreHtml(FactureDTO f) {
+    private static String rendreHtml(FactureDTO f, boolean copiePatient) {
         Context ctx = new Context(Locale.FRENCH);
         ctx.setVariable("numero", texte(f.numero));
         ctx.setVariable("statut", libelleStatut(f.statut));
@@ -161,6 +172,8 @@ public final class FacturePdf {
             for (FactureLigneDTO l : f.lignes) {
                 lignes.add(new LigneVue(
                         texte(l.designation),
+                        l.prestationCode == null || l.prestationCode.isBlank()
+                                ? "—" : l.prestationCode,
                         l.dents == null || l.dents.isBlank() ? "—" : l.dents,
                         String.valueOf(l.quantite),
                         Montants.formater(l.prixUnitaire),
@@ -175,18 +188,69 @@ public final class FacturePdf {
         ctx.setVariable("quotePatient", Montants.formaterAvecDevise(f.quotePatient));
         ctx.setVariable("restePatient", reste(f.soldePatient));
         ctx.setVariable("quoteAssureur", Montants.formaterAvecDevise(f.quoteAssureur));
-        ctx.setVariable("assureurNom",
-                f.assureurNom == null || f.assureurNom.isBlank() ? null : f.assureurNom);
+        String nomAssureur = f.assureurNom == null || f.assureurNom.isBlank() ? null : f.assureurNom;
+        ctx.setVariable("assureurNom", nomAssureur);
+        ctx.setVariable("assureurNiu", vide(f.assureurNiu));
+        ctx.setVariable("assureurAdresse", vide(f.assureurAdresse));
+        ctx.setVariable("assureurTelephone", vide(f.assureurTelephone));
+        ctx.setVariable("pourcentageAssureur", pourcentage(f.pourcentageAssureur));
         ctx.setVariable("quoteSociete", Montants.formaterAvecDevise(f.quoteSociete));
-        ctx.setVariable("societeNom",
-                f.societeNom == null || f.societeNom.isBlank() ? null : f.societeNom);
+        String nomSociete = f.societeNom == null || f.societeNom.isBlank() ? null : f.societeNom;
+        ctx.setVariable("societeNom", nomSociete);
+        ctx.setVariable("societeNiu", vide(f.societeNiu));
+        ctx.setVariable("societeAdresse", vide(f.societeAdresse));
+        ctx.setVariable("societeTelephone", vide(f.societeTelephone));
+        ctx.setVariable("pourcentageSociete", pourcentage(f.pourcentageSociete));
+
+        // Destinataire du document : le tiers payant à qui la facture est adressée
+        // (Assureur ou Société), ou le patient à défaut de couverture.
+        boolean destinataireTiers = f.destinataire == DestinataireFacture.ASSUREUR
+                || f.destinataire == DestinataireFacture.SOCIETE;
+        ctx.setVariable("destinataireTiers", destinataireTiers);
+        ctx.setVariable("copiePatient", copiePatient);
+        String destinataireNom = null;
+        if (f.destinataire == DestinataireFacture.ASSUREUR) {
+            destinataireNom = nomAssureur;
+            ctx.setVariable("destinataireNiu", vide(f.assureurNiu));
+            ctx.setVariable("destinataireAdresse", vide(f.assureurAdresse));
+            ctx.setVariable("destinataireTelephone", vide(f.assureurTelephone));
+        } else if (f.destinataire == DestinataireFacture.SOCIETE) {
+            destinataireNom = nomSociete;
+            ctx.setVariable("destinataireNiu", vide(f.societeNiu));
+            ctx.setVariable("destinataireAdresse", vide(f.societeAdresse));
+            ctx.setVariable("destinataireTelephone", vide(f.societeTelephone));
+        }
+        ctx.setVariable("destinataireNom", destinataireNom);
+        // Montant total pris en charge par les tiers payants (assureur + société).
+        ctx.setVariable("montantPrisEnCharge", Montants.formaterAvecDevise(
+                f.quoteAssureur.add(f.quoteSociete)));
+
+        // Prise en charge : nom de chaque tiers payant, sa part et son montant.
+        List<PriseEnChargeVue> prisesEnCharge = new ArrayList<>();
+        if (nomAssureur != null) {
+            prisesEnCharge.add(new PriseEnChargeVue("Assureur", nomAssureur,
+                    pourcentage(f.pourcentageAssureur),
+                    Montants.formaterAvecDevise(f.quoteAssureur)));
+        }
+        if (nomSociete != null) {
+            prisesEnCharge.add(new PriseEnChargeVue("Société", nomSociete,
+                    pourcentage(f.pourcentageSociete),
+                    Montants.formaterAvecDevise(f.quoteSociete)));
+        }
+        ctx.setVariable("prisesEnCharge", prisesEnCharge);
 
         List<PaiementVue> paiements = new ArrayList<>();
         if (f.paiements != null) {
             for (PaiementDTO p : f.paiements) {
+                String payeur = p.payeur == null ? "—" : p.payeur.getLibelle();
+                if (p.payeur == Payeur.ASSUREUR && nomAssureur != null) {
+                    payeur += " (" + nomAssureur + ")";
+                } else if (p.payeur == Payeur.SOCIETE && nomSociete != null) {
+                    payeur += " (" + nomSociete + ")";
+                }
                 paiements.add(new PaiementVue(
                         p.datePaiement == null ? "—" : p.datePaiement.format(DATE_HEURE),
-                        p.payeur == null ? "—" : p.payeur.getLibelle(),
+                        payeur,
                         p.mode == null ? "—" : p.mode.getLibelle(),
                         Montants.formaterAvecDevise(p.montant),
                         p.reference == null || p.reference.isBlank() ? "—" : p.reference));
@@ -222,6 +286,14 @@ public final class FacturePdf {
         }
     }
 
+    /** Formate une part de prise en charge, ex. « 70 % ». */
+    private static String pourcentage(BigDecimal valeur) {
+        if (valeur == null) {
+            return "—";
+        }
+        return valeur.stripTrailingZeros().toPlainString().replace('.', ',') + " %";
+    }
+
     private static String reste(BigDecimal solde) {
         if (solde == null || solde.signum() == 0) {
             return null;
@@ -246,17 +318,24 @@ public final class FacturePdf {
         return valeur == null ? "" : valeur;
     }
 
+    /** Valeur optionnelle : {@code null} si absente ou vide (pour masquer la ligne). */
+    private static String vide(String valeur) {
+        return valeur == null || valeur.isBlank() ? null : valeur.trim();
+    }
+
     /** Ligne déjà formatée pour le template HTML. */
     public static final class LigneVue {
         private final String designation;
+        private final String codification;
         private final String dents;
         private final String quantite;
         private final String prixUnitaire;
         private final String montant;
 
-        public LigneVue(String designation, String dents, String quantite,
+        public LigneVue(String designation, String codification, String dents, String quantite,
                 String prixUnitaire, String montant) {
             this.designation = designation;
+            this.codification = codification;
             this.dents = dents;
             this.quantite = quantite;
             this.prixUnitaire = prixUnitaire;
@@ -265,6 +344,10 @@ public final class FacturePdf {
 
         public String getDesignation() {
             return designation;
+        }
+
+        public String getCodification() {
+            return codification;
         }
 
         public String getDents() {
@@ -281,6 +364,37 @@ public final class FacturePdf {
 
         public String getMontant() {
             return montant;
+        }
+    }
+
+    /** Tiers payant (assureur ou société) déjà formaté pour le template HTML. */
+    public static final class PriseEnChargeVue {
+        private final String type;
+        private final String nom;
+        private final String pourcentage;
+        private final String quote;
+
+        public PriseEnChargeVue(String type, String nom, String pourcentage, String quote) {
+            this.type = type;
+            this.nom = nom;
+            this.pourcentage = pourcentage;
+            this.quote = quote;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public String getNom() {
+            return nom;
+        }
+
+        public String getPourcentage() {
+            return pourcentage;
+        }
+
+        public String getQuote() {
+            return quote;
         }
     }
 

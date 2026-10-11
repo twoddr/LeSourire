@@ -19,13 +19,16 @@ import javafx.scene.layout.Priority;
 /** Fiche commune assureur / société conventionnée. */
 public class FicheTiersPayantDialogue extends Dialog<FicheTiersPayantDialogue.Saisie> {
 
-    public record Saisie(String nom, String telephone, String email, BigDecimal pourcentage,
-            boolean actif) {
+    public record Saisie(String nom, String niu, String contactNom, String telephone, String email,
+            String adresse, BigDecimal pourcentage, boolean actif) {
     }
 
     private final TextField champNom = new TextField();
+    private final TextField champNiu = new TextField();
+    private final TextField champContact = new TextField();
     private final TextField champTelephone = new TextField();
     private final TextField champEmail = new TextField();
+    private final TextField champAdresse = new TextField();
     private final TextField champPourcentage = new TextField("0");
     private final CheckBox champActif = new CheckBox("Actif");
     private final Label labelErreur = new Label();
@@ -34,8 +37,11 @@ public class FicheTiersPayantDialogue extends Dialog<FicheTiersPayantDialogue.Sa
         return new FicheTiersPayantDialogue(
                 existant == null ? "Nouvel assureur" : "Modifier " + existant.nom(),
                 existant == null ? null : existant.nom(),
+                existant == null ? null : existant.niu(),
+                existant == null ? null : existant.contactNom(),
                 existant == null ? null : existant.telephone(),
                 existant == null ? null : existant.email(),
+                existant == null ? null : existant.adresse(),
                 existant == null ? BigDecimal.ZERO : existant.pourcentageDefaut(),
                 existant == null || existant.actif());
     }
@@ -44,14 +50,17 @@ public class FicheTiersPayantDialogue extends Dialog<FicheTiersPayantDialogue.Sa
         return new FicheTiersPayantDialogue(
                 existante == null ? "Nouvelle société" : "Modifier " + existante.nom(),
                 existante == null ? null : existante.nom(),
+                existante == null ? null : existante.niu(),
+                existante == null ? null : existante.contactNom(),
                 existante == null ? null : existante.telephone(),
                 existante == null ? null : existante.email(),
+                existante == null ? null : existante.adresse(),
                 existante == null ? BigDecimal.ZERO : existante.pourcentageDefaut(),
                 existante == null || existante.actif());
     }
 
-    private FicheTiersPayantDialogue(String titre, String nom, String telephone, String email,
-            BigDecimal pourcentage, boolean actif) {
+    private FicheTiersPayantDialogue(String titre, String nom, String niu, String contactNom,
+            String telephone, String email, String adresse, BigDecimal pourcentage, boolean actif) {
         setTitle(titre);
         setResizable(true);
 
@@ -68,19 +77,32 @@ public class FicheTiersPayantDialogue extends Dialog<FicheTiersPayantDialogue.Sa
         int l = 0;
         grille.add(new Label("Nom"), 0, l);
         grille.add(champNom, 1, l++);
+        grille.add(new Label("NIU"), 0, l);
+        grille.add(champNiu, 1, l++);
+        grille.add(new Label("Personne de contact"), 0, l);
+        grille.add(champContact, 1, l++);
         grille.add(new Label("Téléphone"), 0, l);
         grille.add(champTelephone, 1, l++);
         grille.add(new Label("E-mail"), 0, l);
         grille.add(champEmail, 1, l++);
+        grille.add(new Label("Adresse"), 0, l);
+        grille.add(champAdresse, 1, l++);
         grille.add(new Label("% prise en charge"), 0, l);
         grille.add(champPourcentage, 1, l++);
         grille.add(champActif, 1, l++);
 
         labelErreur.getStyleClass().add("label-erreur");
+        labelErreur.setWrapText(true);
         grille.add(labelErreur, 0, l, 2, 1);
 
         if (nom != null) {
             champNom.setText(nom);
+        }
+        if (niu != null) {
+            champNiu.setText(niu);
+        }
+        if (contactNom != null) {
+            champContact.setText(contactNom);
         }
         if (telephone != null) {
             champTelephone.setText(telephone);
@@ -88,13 +110,16 @@ public class FicheTiersPayantDialogue extends Dialog<FicheTiersPayantDialogue.Sa
         if (email != null) {
             champEmail.setText(email);
         }
+        if (adresse != null) {
+            champAdresse.setText(adresse);
+        }
         if (pourcentage != null) {
             champPourcentage.setText(pourcentage.stripTrailingZeros().toPlainString());
         }
         champActif.setSelected(actif);
 
         getDialogPane().setContent(grille);
-        getDialogPane().setPrefSize(440, 280);
+        getDialogPane().setPrefSize(480, 380);
         ButtonType enregistrer = new ButtonType("Enregistrer", ButtonBar.ButtonData.OK_DONE);
         getDialogPane().getButtonTypes().addAll(enregistrer, ButtonType.CANCEL);
 
@@ -113,8 +138,11 @@ public class FicheTiersPayantDialogue extends Dialog<FicheTiersPayantDialogue.Sa
             }
             return new Saisie(
                     champNom.getText().trim(),
+                    blank(champNiu.getText()),
+                    blank(champContact.getText()),
                     blank(champTelephone.getText()),
                     blank(champEmail.getText()),
+                    blank(champAdresse.getText()),
                     new BigDecimal(champPourcentage.getText().trim().replace(',', '.')),
                     champActif.isSelected());
         });

@@ -72,7 +72,8 @@ public class ServicePatientsApi implements ServicePatients {
 
     @Override
     public AssureurDTO creerAssureur(String nom, BigDecimal pourcentageDefaut) throws ApiException {
-        AssureurDTO nouveau = new AssureurDTO(null, nom, null, null, pourcentageDefaut, true);
+        AssureurDTO nouveau = new AssureurDTO(null, nom, null, null, null, null, null,
+                pourcentageDefaut, true);
         return api.post("/api/assureurs", nouveau, new TypeReference<AssureurDTO>() {
         });
     }
@@ -85,7 +86,8 @@ public class ServicePatientsApi implements ServicePatients {
 
     @Override
     public SocieteDTO creerSociete(String nom, BigDecimal pourcentageDefaut) throws ApiException {
-        SocieteDTO nouvelle = new SocieteDTO(null, nom, null, null, pourcentageDefaut, true);
+        SocieteDTO nouvelle = new SocieteDTO(null, nom, null, null, null, null, null,
+                pourcentageDefaut, true);
         return api.post("/api/societes", nouvelle, new TypeReference<SocieteDTO>() {
         });
     }

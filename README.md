@@ -111,6 +111,10 @@ par Flyway :
   « Notifications patients » ci-dessous) ;
 - `V11__rappel_un_jour_avant.sql` — le rappel de rendez-vous part la veille
   (J‑1) au lieu de J‑2 (`rappel.jours_avant_rdv`, modifiable dans Paramètres).
+- `V12__niu_contact_adresse_tiers_payants.sql` — chaque assureur/société gagne
+  son **NIU** (Numéro d'Identifiant Unique camerounais) et une **personne de
+  contact** ; l'`adresse` (présente depuis `V1`) devient éditable et consultable
+  dans Administration → Tiers payants.
 
 ### Chiffrement des données sensibles
 
@@ -290,6 +294,21 @@ L'identité du cabinet figure sur **chaque page** :
 - en pied de toutes les pages (élément répété par `@page { @bottom-center }`),
   suivi du numéro de page `Page n / N` ;
 - les pages 2 et suivantes rappellent seulement le logo + `Facture n° — patient`.
+
+Le **destinataire** du document suit la pratique du cabinet : dès qu'un tiers
+payant prend une part en charge, la facture lui est **adressée** (bloc « Facture
+adressée à » en haut à droite, avec ses coordonnées NIU / adresse / téléphone) et
+le patient n'apparaît que dans la phrase d'introduction et le bandeau d'identité ;
+sinon la facture est adressée au patient. Ce destinataire est déduit de la
+répartition figée (`FactureDTO.destinataire`, calculé par le serveur : assureur,
+société ou patient) : il n'exige **aucune colonne supplémentaire en base**. Le
+bouton **« Copie patient »** imprime la même facture marquée « Copie patient »,
+à remettre au patient. Le tableau des actes reprend la **codification** du
+cabinet (`Cs`, `D25`, `Z4`…) en plus de la désignation.
+
+Les coordonnées des tiers payants proviennent des fiches correspondantes
+(Administration → Tiers payants) et sont portées par
+`FactureDTO.assureurNiu/Adresse/Telephone` (et les champs `societe*` équivalents).
 
 Ces coordonnées sont définies une seule fois, dans les constantes `CABINET_*` de
 `FacturePdf` (le template se contente de les mettre en forme). Elles recoupent

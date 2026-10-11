@@ -115,6 +115,12 @@ public class FacturationVue {
                 "Ouvrir le PDF de la facture (aperçu et impression via le lecteur système)"));
         imprimer.setOnAction(e -> imprimerSelection());
 
+        Button copie = new Button("Copie patient");
+        copie.setGraphic(new FontIcon(Material2MZ.RECEIPT));
+        copie.setTooltip(new Tooltip(
+                "Ouvrir la facture marquée « Copie patient » (pour remettre au patient)"));
+        copie.setOnAction(e -> copieSelection());
+
         Button nouvelle = new Button("Nouvelle facture");
         nouvelle.setGraphic(new FontIcon(Material2AL.ADD));
         nouvelle.getStyleClass().add("bouton-principal");
@@ -122,7 +128,8 @@ public class FacturationVue {
 
         Region espace = new Region();
         HBox.setHgrow(espace, Priority.ALWAYS);
-        HBox actions = new HBox(10, espace, actualiser, annuler, emettre, encaisser, imprimer, nouvelle);
+        HBox actions = new HBox(10, espace, actualiser, annuler, emettre, encaisser, imprimer,
+                copie, nouvelle);
         actions.setAlignment(Pos.CENTER_RIGHT);
 
         champRecherche.setPromptText("Rechercher par numéro, patient ou dossier…");
@@ -212,6 +219,8 @@ public class FacturationVue {
                     return f.assureurNom != null ? f.assureurNom
                             : f.societeNom != null ? f.societeNom : "";
                 }),
+                colonne("Destinataire", 110, f -> f.destinataire == null
+                        ? "" : f.destinataire.getLibelle()),
                 colonne("Statut", 130, f -> FactureDialogue.libelleStatut(f.statut))));
         tableau.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         tableau.setPlaceholder(new Label("Aucune facture. Créez la première avec « Nouvelle facture »."));
@@ -278,7 +287,7 @@ public class FacturationVue {
             FactureDialogue fiche = new FactureDialogue(null, patient, service, servicePatients);
             Dialogues.afficher(fiche, racine.getScene().getWindow()).ifPresent(saisie ->
                     Async.executer(() -> service.creer(saisie),
-                            creee -> charger(),
+                            creee -> rechargerEnAffichant(creee),
                             e -> afficherErreur("Impossible de créer la facture", e)));
         });
     }
@@ -289,11 +298,37 @@ public class FacturationVue {
             Dialogues.afficher(fiche, racine.getScene().getWindow()).ifPresent(saisie -> {
                 if (saisie.statut == StatutFacture.BROUILLON) {
                     Async.executer(() -> service.modifier(saisie.id, saisie),
-                            modifiee -> charger(),
+                            modifiee -> rechargerEnAffichant(modifiee),
                             e -> afficherErreur("Impossible d'enregistrer la facture", e));
                 }
             });
         }, e -> afficherErreur("Impossible d'ouvrir la facture", e));
+    }
+
+    /**
+     * Recharge la liste en veillant à ce que la facture qui vient d'être
+     * enregistrée y apparaisse : le filtre de période par défaut
+     * (« du 1er du mois à aujourd'hui ») peut l'exclure si sa date est future
+     * ou antérieure (d'où l'impression que le brouillon a disparu).
+     */
+    private void rechargerEnAffichant(FactureDTO facture) {
+        if (facture != null && facture.dateFacture != null) {
+            LocalDate debut = champDebut.getValue();
+            LocalDate fin = champFin.getValue();
+            boolean elargirDebut = debut != null && facture.dateFacture.isBefore(debut);
+            boolean elargirFin = fin != null && facture.dateFacture.isAfter(fin);
+            if (elargirDebut || elargirFin) {
+                // Chaque changement de date relance déjà charger() (listener).
+                if (elargirDebut) {
+                    champDebut.setValue(facture.dateFacture.withDayOfMonth(1));
+                }
+                if (elargirFin) {
+                    champFin.setValue(facture.dateFacture);
+                }
+                return;
+            }
+        }
+        charger();
     }
 
     private void emettreSelection() {
@@ -352,6 +387,16 @@ public class FacturationVue {
         Async.executer(() -> service.obtenir(selection.id),
                 complete -> ImpressionFacture.imprimer(complete, racine.getScene().getWindow()),
                 e -> afficherErreur("Impossible de préparer l'impression", e));
+    }
+
+    private void copieSelection() {
+        FactureDTO selection = exigerSelection();
+        if (selection == null) {
+            return;
+        }
+        Async.executer(() -> service.obtenir(selection.id),
+                complete -> ImpressionFacture.imprimerCopie(complete, racine.getScene().getWindow()),
+                e -> afficherErreur("Impossible de préparer la copie patient", e));
     }
 
     private FactureDTO exigerSelection() {

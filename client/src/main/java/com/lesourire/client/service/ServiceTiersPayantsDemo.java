@@ -15,9 +15,15 @@ public class ServiceTiersPayantsDemo implements ServiceTiersPayants {
     private final List<SocieteDTO> societes = new ArrayList<>();
 
     public ServiceTiersPayantsDemo() {
-        assureurs.add(new AssureurDTO(1L, "Assurance Alpha", null, null, new BigDecimal("70"), true));
-        assureurs.add(new AssureurDTO(2L, "Mutuelle Bêta", null, null, new BigDecimal("80"), true));
-        societes.add(new SocieteDTO(1L, "Société Gamma", null, null, new BigDecimal("50"), true));
+        assureurs.add(new AssureurDTO(1L, "Assurance Alpha", "M0811234567890", "M. Nkoulou",
+                "+237 699 00 11 22", "contact@alpha.cm", "Rue des Palmiers, Douala",
+                new BigDecimal("70"), true));
+        assureurs.add(new AssureurDTO(2L, "Mutuelle Bêta", "M0820234567891", "Mme Abena",
+                "+237 677 44 55 66", "info@mutuellebeta.cm", "Avenue de l'Indépendance, Douala",
+                new BigDecimal("80"), true));
+        societes.add(new SocieteDTO(1L, "Société Gamma", "M0830345678902", "Direction RH",
+                "+237 655 77 88 99", "rh@societegamma.cm", "Zone industrielle Bassa, Douala",
+                new BigDecimal("50"), true));
     }
 
     @Override
@@ -27,8 +33,9 @@ public class ServiceTiersPayantsDemo implements ServiceTiersPayants {
 
     @Override
     public AssureurDTO creerAssureur(AssureurDTO dto) {
-        AssureurDTO a = new AssureurDTO(seq.getAndIncrement(), dto.nom().trim(), dto.telephone(),
-                dto.email(), dto.pourcentageDefaut(), dto.actif());
+        AssureurDTO a = new AssureurDTO(seq.getAndIncrement(), dto.nom().trim(), dto.niu(),
+                dto.contactNom(), dto.telephone(), dto.email(), dto.adresse(),
+                dto.pourcentageDefaut(), dto.actif());
         assureurs.add(a);
         return a;
     }
@@ -37,8 +44,9 @@ public class ServiceTiersPayantsDemo implements ServiceTiersPayants {
     public AssureurDTO modifierAssureur(Long id, AssureurDTO dto) {
         for (int i = 0; i < assureurs.size(); i++) {
             if (assureurs.get(i).id().equals(id)) {
-                AssureurDTO a = new AssureurDTO(id, dto.nom().trim(), dto.telephone(),
-                        dto.email(), dto.pourcentageDefaut(), dto.actif());
+                AssureurDTO a = new AssureurDTO(id, dto.nom().trim(), dto.niu(),
+                        dto.contactNom(), dto.telephone(), dto.email(), dto.adresse(),
+                        dto.pourcentageDefaut(), dto.actif());
                 assureurs.set(i, a);
                 return a;
             }
@@ -53,8 +61,9 @@ public class ServiceTiersPayantsDemo implements ServiceTiersPayants {
 
     @Override
     public SocieteDTO creerSociete(SocieteDTO dto) {
-        SocieteDTO s = new SocieteDTO(seq.getAndIncrement(), dto.nom().trim(), dto.telephone(),
-                dto.email(), dto.pourcentageDefaut(), dto.actif());
+        SocieteDTO s = new SocieteDTO(seq.getAndIncrement(), dto.nom().trim(), dto.niu(),
+                dto.contactNom(), dto.telephone(), dto.email(), dto.adresse(),
+                dto.pourcentageDefaut(), dto.actif());
         societes.add(s);
         return s;
     }
@@ -63,8 +72,9 @@ public class ServiceTiersPayantsDemo implements ServiceTiersPayants {
     public SocieteDTO modifierSociete(Long id, SocieteDTO dto) {
         for (int i = 0; i < societes.size(); i++) {
             if (societes.get(i).id().equals(id)) {
-                SocieteDTO s = new SocieteDTO(id, dto.nom().trim(), dto.telephone(),
-                        dto.email(), dto.pourcentageDefaut(), dto.actif());
+                SocieteDTO s = new SocieteDTO(id, dto.nom().trim(), dto.niu(),
+                        dto.contactNom(), dto.telephone(), dto.email(), dto.adresse(),
+                        dto.pourcentageDefaut(), dto.actif());
                 societes.set(i, s);
                 return s;
             }

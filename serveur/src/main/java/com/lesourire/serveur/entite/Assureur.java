@@ -22,6 +22,14 @@ public class Assureur {
     @Column(nullable = false, unique = true)
     private String nom;
 
+    /** Numéro d'Identifiant Unique (NIU) de l'assureur au Cameroun. */
+    @Column(length = 30)
+    private String niu;
+
+    /** Personne de contact à joindre au cabinet. */
+    @Column(name = "contact_nom")
+    private String contactNom;
+
     @Column(length = 30)
     private String telephone;
 
@@ -39,7 +47,8 @@ public class Assureur {
     private boolean actif = true;
 
     public AssureurDTO versDTO() {
-        return new AssureurDTO(id, nom, telephone, email, pourcentageDefaut, actif);
+        return new AssureurDTO(id, nom, niu, contactNom, telephone, email, adresse,
+                pourcentageDefaut, actif);
     }
 
     public Long getId() {
@@ -52,6 +61,22 @@ public class Assureur {
 
     public void setNom(String nom) {
         this.nom = nom;
+    }
+
+    public String getNiu() {
+        return niu;
+    }
+
+    public void setNiu(String niu) {
+        this.niu = niu;
+    }
+
+    public String getContactNom() {
+        return contactNom;
+    }
+
+    public void setContactNom(String contactNom) {
+        this.contactNom = contactNom;
     }
 
     public String getTelephone() {

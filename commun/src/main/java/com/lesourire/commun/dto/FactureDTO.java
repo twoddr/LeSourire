@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.lesourire.commun.Facturation.DestinataireFacture;
 import com.lesourire.commun.Facturation.StatutFacture;
 
 /**
@@ -23,6 +24,12 @@ public class FactureDTO {
     public LocalDate dateFacture;
     public LocalDate dateEcheance;
 
+    /**
+     * Destinataire du document imprimé (renseigné par le serveur) : le tiers
+     * payant lorsqu'il y en a un, sinon le patient.
+     */
+    public DestinataireFacture destinataire = DestinataireFacture.PATIENT;
+
     /** Praticien à qui imputer les actes (utilisé à la création uniquement). */
     public Long praticienId;
 
@@ -35,10 +42,19 @@ public class FactureDTO {
     // Répartition figée au moment de la facture
     public Long assureurId;
     public String assureurNom;
+    // Coordonnées de l'assureur, pour l'entête imprimé de la facture
+    // (renseignées par le serveur, affichage seul).
+    public String assureurNiu;
+    public String assureurAdresse;
+    public String assureurTelephone;
     public BigDecimal pourcentageAssureur = BigDecimal.ZERO;
     public BigDecimal quoteAssureur = BigDecimal.ZERO;
     public Long societeId;
     public String societeNom;
+    // Coordonnées de la société conventionnée, pour l'entête imprimé.
+    public String societeNiu;
+    public String societeAdresse;
+    public String societeTelephone;
     public BigDecimal pourcentageSociete = BigDecimal.ZERO;
     public BigDecimal quoteSociete = BigDecimal.ZERO;
     public BigDecimal quotePatient = BigDecimal.ZERO;

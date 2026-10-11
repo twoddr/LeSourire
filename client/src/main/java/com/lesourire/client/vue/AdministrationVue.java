@@ -289,9 +289,11 @@ public class AdministrationVue {
 
     private void construireTableauAssureurs() {
         tableauAssureurs.getColumns().setAll(
-                colonneA("Nom", 220, AssureurDTO::nom),
+                colonneA("Nom", 200, AssureurDTO::nom),
+                colonneA("NIU", 130, a -> a.niu() == null ? "" : a.niu()),
+                colonneA("Contact", 150, a -> a.contactNom() == null ? "" : a.contactNom()),
                 colonneA("Téléphone", 120, a -> a.telephone() == null ? "" : a.telephone()),
-                colonneA("E-mail", 180, a -> a.email() == null ? "" : a.email()),
+                colonneA("E-mail", 170, a -> a.email() == null ? "" : a.email()),
                 colonneA("% défaut", 90, a -> formatPourcent(a.pourcentageDefaut())),
                 colonneA("Statut", 90, a -> a.actif() ? "Actif" : "Inactif"));
         tableauAssureurs.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
@@ -309,9 +311,11 @@ public class AdministrationVue {
 
     private void construireTableauSocietes() {
         tableauSocietes.getColumns().setAll(
-                colonneS("Nom", 220, SocieteDTO::nom),
+                colonneS("Nom", 200, SocieteDTO::nom),
+                colonneS("NIU", 130, s -> s.niu() == null ? "" : s.niu()),
+                colonneS("Contact", 150, s -> s.contactNom() == null ? "" : s.contactNom()),
                 colonneS("Téléphone", 120, s -> s.telephone() == null ? "" : s.telephone()),
-                colonneS("E-mail", 180, s -> s.email() == null ? "" : s.email()),
+                colonneS("E-mail", 170, s -> s.email() == null ? "" : s.email()),
                 colonneS("% défaut", 90, s -> formatPourcent(s.pourcentageDefaut())),
                 colonneS("Statut", 90, s -> s.actif() ? "Actif" : "Inactif"));
         tableauSocietes.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
@@ -360,7 +364,8 @@ public class AdministrationVue {
                 racine.getScene().getWindow()).ifPresent(saisie -> {
                     AssureurDTO dto = new AssureurDTO(
                             existant == null ? null : existant.id(),
-                            saisie.nom(), saisie.telephone(), saisie.email(),
+                            saisie.nom(), saisie.niu(), saisie.contactNom(),
+                            saisie.telephone(), saisie.email(), saisie.adresse(),
                             saisie.pourcentage(), saisie.actif());
                     Async.executer(
                             () -> existant == null
@@ -379,7 +384,8 @@ public class AdministrationVue {
                 racine.getScene().getWindow()).ifPresent(saisie -> {
                     SocieteDTO dto = new SocieteDTO(
                             existante == null ? null : existante.id(),
-                            saisie.nom(), saisie.telephone(), saisie.email(),
+                            saisie.nom(), saisie.niu(), saisie.contactNom(),
+                            saisie.telephone(), saisie.email(), saisie.adresse(),
                             saisie.pourcentage(), saisie.actif());
                     Async.executer(
                             () -> existante == null

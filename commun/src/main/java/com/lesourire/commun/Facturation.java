@@ -50,4 +50,26 @@ public final class Facturation {
             return libelle;
         }
     }
+
+    /**
+     * Destinataire du document imprimé : à qui la facture est adressée.
+     * Dans la pratique du cabinet, une facture couverte par un tiers payant lui
+     * est adressée (le patient n'en reçoit qu'une copie) ; sinon elle l'est au
+     * patient. Cet attribut pilote la mise en page du PDF.
+     */
+    public enum DestinataireFacture {
+        PATIENT("Patient"),
+        ASSUREUR("Assureur"),
+        SOCIETE("Société");
+
+        private final String libelle;
+
+        DestinataireFacture(String libelle) {
+            this.libelle = libelle;
+        }
+
+        public String getLibelle() {
+            return libelle;
+        }
+    }
 }

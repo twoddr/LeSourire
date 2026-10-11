@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.lesourire.commun.Facturation.DestinataireFacture;
 import com.lesourire.commun.Facturation.StatutFacture;
 import com.lesourire.commun.dto.FactureDTO;
 import com.lesourire.commun.dto.FactureLigneDTO;
@@ -137,16 +138,28 @@ public class Facture {
         if (assureur != null) {
             dto.assureurId = assureur.getId();
             dto.assureurNom = assureur.getNom();
+            dto.assureurNiu = assureur.getNiu();
+            dto.assureurAdresse = assureur.getAdresse();
+            dto.assureurTelephone = assureur.getTelephone();
         }
         dto.pourcentageAssureur = pourcentageAssureur;
         dto.quoteAssureur = quoteAssureur;
         if (societe != null) {
             dto.societeId = societe.getId();
             dto.societeNom = societe.getNom();
+            dto.societeNiu = societe.getNiu();
+            dto.societeAdresse = societe.getAdresse();
+            dto.societeTelephone = societe.getTelephone();
         }
         dto.pourcentageSociete = pourcentageSociete;
         dto.quoteSociete = quoteSociete;
         dto.quotePatient = quotePatient;
+        // La facture est adressée au tiers payant dès qu'il prend une part en
+        // charge ; sinon au patient. La répartition étant figée à l'émission,
+        // le destinataire est stable dans le temps (aucune colonne en base).
+        dto.destinataire = quoteAssureur.signum() > 0 ? DestinataireFacture.ASSUREUR
+                : quoteSociete.signum() > 0 ? DestinataireFacture.SOCIETE
+                : DestinataireFacture.PATIENT;
         dto.payePatient = zeroSiNull(payePatient);
         dto.payeAssureur = zeroSiNull(payeAssureur);
         dto.payeSociete = zeroSiNull(payeSociete);

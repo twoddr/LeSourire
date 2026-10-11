@@ -10,6 +10,7 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.lesourire.client.coeur.ApiClient.ApiException;
+import com.lesourire.commun.Facturation.DestinataireFacture;
 import com.lesourire.commun.Facturation.Payeur;
 import com.lesourire.commun.Facturation.StatutFacture;
 import com.lesourire.commun.Role;
@@ -57,11 +58,15 @@ public class ServiceFacturationDemo implements ServiceFacturation {
         exemple.montantBrut = new BigDecimal("14400");
         exemple.montantNet = new BigDecimal("14400");
         exemple.assureurNom = "Assurance Alpha";
+        exemple.assureurNiu = "M091234567890A";
+        exemple.assureurAdresse = "Rue des Palmiers, Douala";
+        exemple.assureurTelephone = "+237 699 00 11 22";
         exemple.pourcentageAssureur = new BigDecimal("70");
         exemple.quoteAssureur = new BigDecimal("10080");
         exemple.quotePatient = new BigDecimal("4320");
         exemple.soldeAssureur = exemple.quoteAssureur;
         exemple.soldePatient = exemple.quotePatient;
+        exemple.destinataire = DestinataireFacture.ASSUREUR;
         exemple.statut = StatutFacture.EMISE;
         factures.add(exemple);
     }
@@ -143,6 +148,9 @@ public class ServiceFacturationDemo implements ServiceFacturation {
         f.quoteSociete = f.montantNet.multiply(f.pourcentageSociete)
                 .divide(CENT, 2, RoundingMode.HALF_UP);
         f.quotePatient = f.montantNet.subtract(f.quoteAssureur).subtract(f.quoteSociete);
+        f.destinataire = f.quoteAssureur.signum() > 0 ? DestinataireFacture.ASSUREUR
+                : f.quoteSociete.signum() > 0 ? DestinataireFacture.SOCIETE
+                : DestinataireFacture.PATIENT;
         rafraichirSoldes(f);
     }
 

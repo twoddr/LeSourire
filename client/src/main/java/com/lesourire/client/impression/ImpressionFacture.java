@@ -30,6 +30,19 @@ public final class ImpressionFacture {
      * La facture doit être complète (lignes, et paiements si déjà chargés).
      */
     public static void imprimer(FactureDTO facture, Window proprietaire) {
+        genererEtOuvrir(facture, proprietaire, false);
+    }
+
+    /**
+     * Ouvre la même facture marquée « Copie patient » : à remettre au patient
+     * lorsque l'original est adressé au tiers payant.
+     */
+    public static void imprimerCopie(FactureDTO facture, Window proprietaire) {
+        genererEtOuvrir(facture, proprietaire, true);
+    }
+
+    private static void genererEtOuvrir(FactureDTO facture, Window proprietaire,
+            boolean copiePatient) {
         if (facture == null || facture.id == null) {
             alerter(proprietaire, "Impression impossible",
                     "Enregistrez d'abord la facture.");
@@ -49,9 +62,10 @@ public final class ImpressionFacture {
         Path pdf;
         try {
             String suffixe = (facture.numero == null ? "facture" : facture.numero)
-                    .replaceAll("[^A-Za-z0-9._-]", "_");
+                    .replaceAll("[^A-Za-z0-9._-]", "_")
+                    + (copiePatient ? "-copie" : "");
             pdf = Files.createTempFile("lesourire-" + suffixe + "-", ".pdf");
-            FacturePdf.ecrire(facture, pdf);
+            FacturePdf.ecrire(facture, pdf, copiePatient);
             pdf.toFile().deleteOnExit();
         } catch (Exception e) {
             alerter(proprietaire, "Impossible de créer le PDF",

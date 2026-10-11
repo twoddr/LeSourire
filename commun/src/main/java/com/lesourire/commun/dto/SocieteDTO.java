@@ -6,8 +6,11 @@ import java.math.BigDecimal;
 public record SocieteDTO(
         Long id,
         String nom,
+        String niu,
+        String contactNom,
         String telephone,
         String email,
+        String adresse,
         BigDecimal pourcentageDefaut,
         boolean actif) {
 

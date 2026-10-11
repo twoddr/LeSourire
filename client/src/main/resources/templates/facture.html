@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="fr">
+
 <head>
-    <meta charset="UTF-8"/>
+    <meta charset="UTF-8" />
     <title th:text="'Facture ' + ${numero}">Facture</title>
     <style>
         /* Mise en page A4 — modifier ici pour peaufiner le PDF.
@@ -11,16 +12,20 @@
             /* Bas : place pour le bloc d'identité du cabinet + le n° de page
                (cf. .pied-page, répété sur chaque page) */
             margin: 2.2cm 1.4cm 2.6cm 1.4cm;
+
             @top-center {
                 content: element(entete-courant);
             }
+
             @bottom-center {
                 content: element(pied-page);
             }
         }
+
         @page :first {
             /* Page 1 : l'identité du cabinet (logo + coordonnées) remplace la bannière */
             margin-top: 1.2cm;
+
             @top-center {
                 content: none;
             }
@@ -29,6 +34,7 @@
         * {
             box-sizing: border-box;
         }
+
         body {
             font-family: 'DejaVu Sans', sans-serif;
             font-size: 10pt;
@@ -46,6 +52,7 @@
             padding-bottom: 4pt;
             width: 100%;
         }
+
         .entete-courant .logo-mini {
             height: 18pt;
             vertical-align: middle;
@@ -63,10 +70,12 @@
             text-align: center;
             width: 100%;
         }
+
         .pied-page .pied-nom {
             font-weight: bold;
-            color: #2a6f6a;
+            color: #1F4E79;
         }
+
         .pied-page::after {
             content: "Page " counter(page) " / " counter(pages);
             color: #888;
@@ -74,39 +83,47 @@
 
         /* En-tête de la 1re page : logo + coordonnées du cabinet (ex-bannière). */
         .identite-bloc {
-            border-bottom: 1pt solid #2a6f6a;
+            border-bottom: 1pt solid #1F4E79;
             margin-bottom: 20pt;
         }
+
         table.identite {
             width: 100%;
             border-collapse: collapse;
         }
+
         table.identite td {
             border: none;
             padding: 0;
             vertical-align: middle;
         }
+
         td.identite-logo {
             width: 82pt;
         }
+
         img.logo {
             height: 66pt;
         }
+
         .cabinet-nom {
             font-size: 13pt;
             font-weight: bold;
-            color: #2a6f6a;
+            color: #1F4E79;
             letter-spacing: 0.3pt;
         }
+
         .cabinet-praticien {
             font-size: 11pt;
             font-weight: bold;
             margin-top: 2pt;
         }
+
         .cabinet-detail {
             font-size: 9pt;
             color: #333;
         }
+
         .cabinet-contact {
             font-size: 9pt;
             color: #333;
@@ -116,23 +133,133 @@
         .titre-bloc {
             margin: 6pt 0 18pt 0;
         }
+
         .titre-bloc h1 {
             font-size: 16pt;
             margin: 0 0 4pt 0;
             font-weight: bold;
             letter-spacing: 0.5pt;
         }
+
         .meta {
             font-size: 10pt;
         }
+
         .meta strong {
             font-weight: bold;
         }
-        .patient {
-            margin: 10pt 0 14pt 0;
+
+        /* Bandeau d'identités : le patient à gauche et, le cas échéant, son
+           tiers payant (assureur / société) en vis-à-vis à droite.
+           Deux « cartes » séparées pour rester clair et aéré. */
+        table.identites {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10pt 0 16pt 0;
+        }
+
+        table.identites td {
+            vertical-align: top;
+        }
+
+        td.carte {
+            width: 47%;
             padding: 8pt 10pt;
-            background: #f4f7f6;
-            border-left: 3pt solid #2a6f6a;
+            background: #eef3fa;
+            border-left: 3pt solid #1F4E79;
+        }
+
+        /* Patient seul (aucun tiers payant) : la carte occupe toute la largeur. */
+        td.carte-large {
+            width: 100%;
+        }
+
+        /* Cellule vide qui ménage l'écart entre les deux cartes. */
+        td.espace {
+            width: 6%;
+            padding: 0;
+            background: transparent;
+            border: none;
+        }
+
+        .bloc-titre {
+            font-size: 8pt;
+            font-weight: bold;
+            color: #1F4E79;
+            text-transform: uppercase;
+            letter-spacing: 0.5pt;
+            margin-bottom: 3pt;
+        }
+
+        .bloc-nom {
+            font-size: 10.5pt;
+            font-weight: bold;
+        }
+
+        .bloc-detail {
+            font-size: 9pt;
+            color: #333;
+            line-height: 1.35;
+        }
+
+        /* Ligne de séparation entre assureur et société, si les deux sont présents. */
+        .bloc-tier+.bloc-tier {
+            margin-top: 8pt;
+            padding-top: 6pt;
+            border-top: 0.5pt solid #c7d8ea;
+        }
+
+        /* Bloc « destinataire » : le tiers payant à qui la facture est adressée
+           (reprend la présentation des factures Word du cabinet). */
+        table.destinataire {
+            width: 52%;
+            margin: 4pt 0 16pt auto;
+            border-collapse: collapse;
+            background: #eef3fa;
+        }
+
+        table.destinataire td {
+            padding: 8pt 10pt;
+            border-left: 3pt solid #1F4E79;
+            vertical-align: top;
+        }
+
+        .destinataire-titre {
+            font-size: 8pt;
+            font-weight: bold;
+            color: #1F4E79;
+            text-transform: uppercase;
+            letter-spacing: 0.5pt;
+            margin-bottom: 3pt;
+        }
+
+        .destinataire-nom {
+            font-size: 10.5pt;
+            font-weight: bold;
+        }
+
+        .destinataire-detail {
+            font-size: 9pt;
+            color: #333;
+            line-height: 1.35;
+        }
+
+        /* Phrase d'introduction : « … la facture de … s'élevant à … ». */
+        p.introduction {
+            margin: 0 0 12pt 0;
+            font-size: 10pt;
+        }
+
+        /* Bandeau « Copie patient » (l'original est adressé au tiers payant). */
+        .copie-patient {
+            text-align: center;
+            font-size: 9pt;
+            letter-spacing: 2pt;
+            text-transform: uppercase;
+            color: #888;
+            border: 0.5pt dashed #aaa;
+            padding: 3pt;
+            margin: 0 0 10pt 0;
         }
 
         table.lignes {
@@ -140,31 +267,37 @@
             border-collapse: collapse;
             margin-bottom: 12pt;
         }
+
         table.lignes th {
-            background: #2a6f6a;
+            background: #1F4E79;
             color: #fff;
             font-weight: bold;
             font-size: 9pt;
             padding: 5pt 4pt;
             text-align: left;
-            border: 0.4pt solid #2a6f6a;
+            border: 0.4pt solid #1F4E79;
         }
+
         table.lignes th.droite,
         table.lignes td.droite {
             text-align: right;
         }
+
         table.lignes th.centre,
         table.lignes td.centre {
             text-align: center;
         }
+
         table.lignes td {
             padding: 4pt;
             border: 0.4pt solid #d0d0d0;
             vertical-align: top;
         }
+
         table.lignes tr:nth-child(even) td {
             background: #fafafa;
         }
+
         .dents {
             color: #555;
             font-size: 8.5pt;
@@ -176,53 +309,87 @@
             border-collapse: collapse;
             margin-bottom: 14pt;
         }
+
         table.totaux td {
             padding: 3pt 6pt;
             border: none;
         }
+
         table.totaux td.libelle {
             text-align: right;
             color: #333;
         }
+
         table.totaux td.valeur {
             text-align: right;
             white-space: nowrap;
             width: 38%;
         }
+
         table.totaux tr.net td {
             font-weight: bold;
             font-size: 11pt;
-            border-top: 0.8pt solid #2a6f6a;
+            border-top: 0.8pt solid #1F4E79;
             padding-top: 6pt;
         }
 
         h2 {
             font-size: 11pt;
             margin: 12pt 0 6pt 0;
-            color: #2a6f6a;
-            border-bottom: 0.5pt solid #c5e0dd;
+            color: #1F4E79;
+            border-bottom: 0.5pt solid #c7d8ea;
             padding-bottom: 2pt;
         }
+
+        table.prise-en-charge {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9.5pt;
+            margin-bottom: 12pt;
+        }
+
+        table.prise-en-charge th {
+            text-align: left;
+            background: #e8eef8;
+            color: #1F4E79;
+            padding: 4pt;
+            border: 0.4pt solid #c7d8ea;
+        }
+
+        table.prise-en-charge td {
+            padding: 3pt 4pt;
+            border: 0.4pt solid #e0e0e0;
+        }
+
+        table.prise-en-charge td.droite,
+        table.prise-en-charge th.droite {
+            text-align: right;
+        }
+
         table.paiements {
             width: 100%;
             border-collapse: collapse;
             font-size: 9pt;
         }
+
         table.paiements th {
             text-align: left;
-            background: #e8f0ef;
+            background: #e8eef8;
             padding: 4pt;
-            border: 0.4pt solid #c5d9d6;
+            border: 0.4pt solid #c7d8ea;
         }
+
         table.paiements td {
             padding: 3pt 4pt;
             border: 0.4pt solid #e0e0e0;
         }
+
         .vide {
             color: #777;
             font-style: italic;
             font-size: 9pt;
         }
+
         .notes {
             margin-top: 12pt;
             font-size: 9pt;
@@ -230,144 +397,202 @@
         }
     </style>
 </head>
+
 <body>
 
-<!-- Rappel du document, répété en haut des pages 2 et suivantes -->
-<div class="entete-courant">
-    <img class="logo-mini" th:src="${logoUri}" alt=""/>
-    Facture <span th:text="${numero}">FA-…</span>
-    — <span th:text="${patientNom}">—</span>
-</div>
-
-<!-- Identité du cabinet, répétée en pied de CHAQUE page -->
-<div class="pied-page">
-    <div>
-        <span class="pied-nom" th:text="${cabinetNom}">CABINET DENTAIRE LE SOURIRE</span>
-        — <span th:text="${cabinetPraticien}">Docteur Nadine TOWE</span>,
-        <span th:text="${cabinetSpecialite}">Chirurgien Dentiste</span>
+    <!-- Rappel du document, répété en haut des pages 2 et suivantes -->
+    <div class="entete-courant">
+        <img class="logo-mini" th:src="${logoUri}" alt="" />
+        Facture <span th:text="${numero}">FA-…</span>
+        — <span th:text="${patientNom}">—</span>
     </div>
-    <div th:text="${cabinetDiplome}">Diplômée de l’UFR d’Odonto – Stomatologie d’Abidjan, Côte d’Ivoire</div>
-    <div th:text="${'Tél : ' + cabinetTelephones}">Tél : (237) 233 431 411 / 686 339 308 / 671 512 971</div>
-</div>
 
-<!-- En-tête de la 1re page : logo + coordonnées du cabinet (à la place de la bannière) -->
-<div class="identite-bloc">
-    <table class="identite">
+    <!-- Identité du cabinet, répétée en pied de CHAQUE page -->
+    <div class="pied-page">
+        <div>
+            <span class="pied-nom" th:text="${cabinetNom}">CABINET DENTAIRE LE SOURIRE</span>
+            — <span th:text="${cabinetPraticien}">Docteur Nadine TOWE</span>,
+            <span th:text="${cabinetSpecialite}">Chirurgien Dentiste</span>
+        </div>
+        <div th:text="${cabinetDiplome}">Diplômée de l’UFR d’Odonto – Stomatologie d’Abidjan, Côte d’Ivoire</div>
+        <div th:text="${'Tél : ' + cabinetTelephones}">Tél : (237) 233 431 411 / 686 339 308 / 671 512 971</div>
+    </div>
+
+    <!-- En-tête de la 1re page : logo + coordonnées du cabinet (à la place de la bannière) -->
+    <div class="identite-bloc">
+        <table class="identite">
+            <tr>
+                <td class="identite-logo"><img class="logo" th:src="${logoUri}" alt="Le Sourire" /></td>
+                <td>
+                    <div class="cabinet-nom" th:text="${cabinetNom}">CABINET DENTAIRE LE SOURIRE</div>
+                    <div class="cabinet-praticien" th:text="${cabinetPraticien}">Docteur Nadine TOWE</div>
+                    <div class="cabinet-detail" th:text="${cabinetSpecialite}">Chirurgien Dentiste</div>
+                    <div class="cabinet-detail" th:text="${cabinetDiplome}">Diplômée de l’UFR d’Odonto – Stomatologie
+                        d’Abidjan, Côte d’Ivoire</div>
+                    <div class="cabinet-contact" th:text="${'Tél : ' + cabinetTelephones}">Tél : (237) 233 431 411 / 686
+                        339 308 / 671 512 971</div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Destinataire : la facture couverte par un tiers payant lui est adressée -->
+    <table class="destinataire" th:if="${destinataireTiers}">
         <tr>
-            <td class="identite-logo"><img class="logo" th:src="${logoUri}" alt="Le Sourire"/></td>
             <td>
-                <div class="cabinet-nom" th:text="${cabinetNom}">CABINET DENTAIRE LE SOURIRE</div>
-                <div class="cabinet-praticien" th:text="${cabinetPraticien}">Docteur Nadine TOWE</div>
-                <div class="cabinet-detail" th:text="${cabinetSpecialite}">Chirurgien Dentiste</div>
-                <div class="cabinet-detail" th:text="${cabinetDiplome}">Diplômée de l’UFR d’Odonto – Stomatologie d’Abidjan, Côte d’Ivoire</div>
-                <div class="cabinet-contact" th:text="${'Tél : ' + cabinetTelephones}">Tél : (237) 233 431 411 / 686 339 308 / 671 512 971</div>
+                <div class="destinataire-titre">Facture adressée à</div>
+                <div class="destinataire-nom" th:text="${destinataireNom}">—</div>
+                <div class="destinataire-detail" th:if="${destinataireNiu != null}">
+                    NIU : <span th:text="${destinataireNiu}">—</span>
+                </div>
+                <div class="destinataire-detail" th:if="${destinataireAdresse != null}"
+                    th:text="${destinataireAdresse}">—
+                </div>
+                <div class="destinataire-detail" th:if="${destinataireTelephone != null}"
+                    th:text="${'Tél : ' + destinataireTelephone}">Tél : —</div>
             </td>
         </tr>
     </table>
-</div>
 
-<div class="titre-bloc">
-    <h1>FACTURE</h1>
-    <div class="meta">
-        <strong th:text="${numero}">FA-…</strong>
-        — <span th:text="${statut}">Émise</span><br/>
-        Date : <span th:text="${dateFacture}">—</span>
-        <span th:if="${dateEcheance != null}">
-            · Échéance : <span th:text="${dateEcheance}">—</span>
-        </span>
+    <div class="titre-bloc">
+        <h1>FACTURE</h1>
+        <div class="meta">
+            <strong th:text="${numero}">FA-…</strong>
+            — <span th:text="${statut}">Émise</span><br />
+            Date : <span th:text="${dateFacture}">—</span>
+            <span th:if="${dateEcheance != null}">
+                · Échéance : <span th:text="${dateEcheance}">—</span>
+            </span>
+        </div>
     </div>
-</div>
 
-<div class="patient">
-    <strong>Patient :</strong>
-    <span th:text="${patientNom}">—</span>
-    <span th:if="${patientDossier != null}">
-        (<span th:text="${patientDossier}">—</span>)
-    </span>
-</div>
+    <!-- Mention « Copie patient » : l'original est adressé au tiers payant -->
+    <div class="copie-patient" th:if="${copiePatient}">Copie patient</div>
 
-<table class="lignes">
-    <thead>
-    <tr>
-        <th>Désignation</th>
-        <th class="centre" style="width: 12%;">Dents</th>
-        <th class="centre" style="width: 8%;">Qté</th>
-        <th class="droite" style="width: 14%;">P.U.</th>
-        <th class="droite" style="width: 16%;">Montant</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr th:each="l : ${lignes}">
-        <td th:text="${l.designation}">—</td>
-        <td class="centre dents" th:text="${l.dents}">—</td>
-        <td class="centre" th:text="${l.quantite}">1</td>
-        <td class="droite" th:text="${l.prixUnitaire}">—</td>
-        <td class="droite" th:text="${l.montant}">—</td>
-    </tr>
-    </tbody>
-</table>
+    <!-- Phrase d'introduction (facture adressée au tiers payant) -->
+    <p class="introduction" th:if="${destinataireTiers}">
+        Nous vous présentons suivant devis la facture de
+        <strong th:text="${patientNom}">—</strong> s'élevant à
+        <strong th:text="${montantNet}">—</strong>.
+    </p>
 
-<table class="totaux">
+    <!-- Identité du patient (le tiers payant figure ci-dessus, comme destinataire) -->
+    <!-- <table class="identites">
     <tr>
-        <td class="libelle">Montant brut</td>
-        <td class="valeur" th:text="${montantBrut}">—</td>
+        <td class="carte carte-large">
+            <div class="bloc-titre">Patient</div>
+            <div class="bloc-nom" th:text="${patientNom}">—</div>
+            <div class="bloc-detail" th:if="${patientDossier != null}"
+                 th:text="${'Dossier ' + patientDossier}">Dossier —</div>
+        </td>
     </tr>
-    <tr>
-        <td class="libelle">Remise</td>
-        <td class="valeur" th:text="${remise}">—</td>
-    </tr>
-    <tr class="net">
-        <td class="libelle">Net à payer</td>
-        <td class="valeur" th:text="${montantNet}">—</td>
-    </tr>
-    <tr>
-        <td class="libelle">Quote patient<span th:if="${restePatient != null}" th:text="${' (' + restePatient + ')'}"></span></td>
-        <td class="valeur" th:text="${quotePatient}">—</td>
-    </tr>
-    <tr th:if="${assureurNom != null}">
-        <td class="libelle">Quote assureur — <span th:text="${assureurNom}">—</span></td>
-        <td class="valeur" th:text="${quoteAssureur}">—</td>
-    </tr>
-    <tr th:unless="${assureurNom != null}">
-        <td class="libelle">Quote assureur</td>
-        <td class="valeur" th:text="${quoteAssureur}">—</td>
-    </tr>
-    <tr th:if="${societeNom != null}">
-        <td class="libelle">Quote société — <span th:text="${societeNom}">—</span></td>
-        <td class="valeur" th:text="${quoteSociete}">—</td>
-    </tr>
-    <tr th:unless="${societeNom != null}">
-        <td class="libelle">Quote société</td>
-        <td class="valeur" th:text="${quoteSociete}">—</td>
-    </tr>
-</table>
+</table>-->
 
-<h2>Paiements</h2>
-<p th:if="${#lists.isEmpty(paiements)}" class="vide">Aucun paiement enregistré.</p>
-<table th:unless="${#lists.isEmpty(paiements)}" class="paiements">
-    <thead>
-    <tr>
-        <th>Date</th>
-        <th>Payeur</th>
-        <th>Mode</th>
-        <th style="text-align: right;">Montant</th>
-        <th>Référence</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr th:each="p : ${paiements}">
-        <td th:text="${p.date}">—</td>
-        <td th:text="${p.payeur}">—</td>
-        <td th:text="${p.mode}">—</td>
-        <td style="text-align: right;" th:text="${p.montant}">—</td>
-        <td th:text="${p.reference}">—</td>
-    </tr>
-    </tbody>
-</table>
+    <!-- Nom de chaque assurance / société qui prend en charge une part de la facture -->
+    <!-- <div th:if="${!#lists.isEmpty(prisesEnCharge)}">
+    <h2>Prise en charge</h2>
+    <table class="prise-en-charge">
+        <thead>
+        <tr>
+            <th style="width: 20%;">Payeur</th>
+            <th>Assurance / Société</th>
+            <th class="droite" style="width: 14%;">Part</th>
+            <th class="droite" style="width: 20%;">Montant</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="p : ${prisesEnCharge}">
+            <td th:text="${p.type}">Assureur</td>
+            <td th:text="${p.nom}">—</td>
+            <td class="droite" th:text="${p.pourcentage}">—</td>
+            <td class="droite" th:text="${p.quote}">—</td>
+        </tr>
+        </tbody>
+    </table>
+</div>-->
 
-<div th:if="${notes != null}" class="notes">
-    <strong>Notes :</strong> <span th:text="${notes}">—</span>
-</div>
+    <table class="lignes">
+        <thead>
+            <tr>
+                <th>Désignation</th>
+                <th class="centre" style="width: 14%;">Codification</th>
+                <th class="centre" style="width: 12%;">Dents</th>
+                <th class="centre" style="width: 8%;">Qté</th>
+                <th class="droite" style="width: 14%;">P.U.</th>
+                <th class="droite" style="width: 16%;">Montant</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="l : ${lignes}">
+                <td th:text="${l.designation}">—</td>
+                <td class="centre" th:text="${l.codification}">—</td>
+                <td class="centre dents" th:text="${l.dents}">—</td>
+                <td class="centre" th:text="${l.quantite}">1</td>
+                <td class="droite" th:text="${l.prixUnitaire}">—</td>
+                <td class="droite" th:text="${l.montant}">—</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <table class="totaux">
+        <tr>
+            <td class="libelle">Montant brut</td>
+            <td class="valeur" th:text="${montantBrut}">—</td>
+        </tr>
+        <tr>
+            <td class="libelle">Remise</td>
+            <td class="valeur" th:text="${remise}">—</td>
+        </tr>
+        <tr class="net" th:if="${destinataireTiers}">
+            <td class="libelle">Montant pris en charge</td>
+            <td class="valeur" th:text="${montantPrisEnCharge}">—</td>
+        </tr>
+        <tr class="net" th:unless="${destinataireTiers}">
+            <td class="libelle">Net à payer</td>
+            <td class="valeur" th:text="${montantNet}">—</td>
+        </tr>
+        <tr>
+            <td class="libelle">Quote patient<span th:if="${restePatient != null}"
+                    th:text="${' (' + restePatient + ')'}"></span></td>
+            <td class="valeur" th:text="${quotePatient}">—</td>
+        </tr>
+        <tr>
+            <td class="libelle">Quote assureur</td>
+            <td class="valeur" th:text="${quoteAssureur}">—</td>
+        </tr>
+        <tr>
+            <td class="libelle">Quote société</td>
+            <td class="valeur" th:text="${quoteSociete}">—</td>
+        </tr>
+    </table>
+
+    <h2>Paiements</h2>
+    <p th:if="${#lists.isEmpty(paiements)}" class="vide">Aucun paiement enregistré.</p>
+    <table th:unless="${#lists.isEmpty(paiements)}" class="paiements">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Payeur</th>
+                <th>Mode</th>
+                <th style="text-align: right;">Montant</th>
+                <th>Référence</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="p : ${paiements}">
+                <td th:text="${p.date}">—</td>
+                <td th:text="${p.payeur}">—</td>
+                <td th:text="${p.mode}">—</td>
+                <td style="text-align: right;" th:text="${p.montant}">—</td>
+                <td th:text="${p.reference}">—</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div th:if="${notes != null}" class="notes">
+        <strong>Notes :</strong> <span th:text="${notes}">—</span>
+    </div>
 
 </body>
+
 </html>

@@ -27,9 +27,15 @@ public class ServicePatientsDemo implements ServicePatients {
     private final List<SocieteDTO> societes = new ArrayList<>();
 
     public ServicePatientsDemo() {
-        assureurs.add(new AssureurDTO(1L, "Assurance Alpha", null, null, new BigDecimal("70"), true));
-        assureurs.add(new AssureurDTO(2L, "Mutuelle Bêta", null, null, new BigDecimal("80"), true));
-        societes.add(new SocieteDTO(1L, "Société Gamma", null, null, new BigDecimal("50"), true));
+        assureurs.add(new AssureurDTO(1L, "Assurance Alpha", "M0811234567890", "M. Nkoulou",
+                "+237 699 00 11 22", "contact@alpha.cm", "Rue des Palmiers, Douala",
+                new BigDecimal("70"), true));
+        assureurs.add(new AssureurDTO(2L, "Mutuelle Bêta", "M0820234567891", "Mme Abena",
+                "+237 677 44 55 66", "info@mutuellebeta.cm", "Avenue de l'Indépendance, Douala",
+                new BigDecimal("80"), true));
+        societes.add(new SocieteDTO(1L, "Société Gamma", "M0830345678902", "Direction RH",
+                "+237 655 77 88 99", "rh@societegamma.cm", "Zone industrielle Bassa, Douala",
+                new BigDecimal("50"), true));
 
         PatientDTO p1 = exemple("NGONO", "Marie", "1985-04-12", "F", "699 11 22 33");
         ajouterCouvertureInterne(p1, CouvertureDTO.TYPE_ASSUREUR, 1L, "Assurance Alpha",
@@ -204,8 +210,8 @@ public class ServicePatientsDemo implements ServicePatients {
 
     @Override
     public AssureurDTO creerAssureur(String nom, BigDecimal pourcentageDefaut) {
-        AssureurDTO a = new AssureurDTO(sequence.incrementAndGet(), nom, null, null,
-                pourcentageDefaut, true);
+        AssureurDTO a = new AssureurDTO(sequence.incrementAndGet(), nom, null, null, null, null,
+                null, pourcentageDefaut, true);
         assureurs.add(a);
         return a;
     }
@@ -217,8 +223,8 @@ public class ServicePatientsDemo implements ServicePatients {
 
     @Override
     public SocieteDTO creerSociete(String nom, BigDecimal pourcentageDefaut) {
-        SocieteDTO s = new SocieteDTO(sequence.incrementAndGet(), nom, null, null,
-                pourcentageDefaut, true);
+        SocieteDTO s = new SocieteDTO(sequence.incrementAndGet(), nom, null, null, null, null,
+                null, pourcentageDefaut, true);
         societes.add(s);
         return s;
     }
